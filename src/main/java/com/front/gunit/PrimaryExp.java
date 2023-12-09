@@ -1,12 +1,12 @@
 package com.front.gunit;
 public class PrimaryExp extends Exp{
-    private ObjectClass primaryExp = new ObjectClass();
+    private ObjectClass wrappedExp = new ObjectClass();
 
-    public void setPrimaryExp(ObjectClass primaryExp){
-        this.primaryExp = primaryExp;
+    public void setWrappedExp(ObjectClass primaryExp){
+        this.wrappedExp = primaryExp;
     }
 
-    public ObjectClass getPrimaryExp() {
-        return primaryExp;
+    public ObjectClass getWrappedExp() {
+        return wrappedExp;
     }
 }

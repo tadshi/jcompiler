@@ -38,7 +38,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
             for (int dim : entry.getDimensions()) {
                 initVisitor.visitIntInsn(SIPUSH, dim);
             }
-            initHelper.reportUsedOpStack(entry.getDimensions().size());
+            initHelper.reportUsedStack(entry.getDimensions().size());
             initVisitor.visitMultiANewArrayInsn(descriptor, entry.getDimensions().size());
             initVisitor.visitFieldInsn(Opcodes.PUTSTATIC, "com/oto/Static", entry.getName(), descriptor);
             // TODO

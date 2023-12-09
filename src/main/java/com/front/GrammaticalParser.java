@@ -1044,7 +1044,7 @@ public class GrammaticalParser {
         String type = wordMap.get(grammarId).type;
         if (name.equals("(")) {
             Exp exp = parseExp();
-            ret.setPrimaryExp(exp);
+            ret.setWrappedExp(exp);
             grammarId++;
             if (!wordMap.get(grammarId).content.equals(")")) {
                 grammarId--;
@@ -1052,11 +1052,11 @@ public class GrammaticalParser {
             }
         } else if (type.equals("INTCON")) {
             GNumber number = parseNumber();
-            ret.setPrimaryExp(number);
+            ret.setWrappedExp(number);
         } else {
             grammarId--;
             LVal lVal = parseLVal();
-            ret.setPrimaryExp(lVal);
+            ret.setWrappedExp(lVal);
         }
 
         id2Object.put(treeId++, ret);

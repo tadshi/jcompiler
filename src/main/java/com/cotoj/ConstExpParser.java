@@ -43,7 +43,7 @@ public interface ConstExpParser {
 
     // <PrimaryExp> ::= (<Exp>) | <LVal> | <Number>
     private static int parsePrimaryExp(PrimaryExp exp, SymbolTable table) {
-        ObjectClass misteryExp = exp.getPrimaryExp();
+        ObjectClass misteryExp = exp.getWrappedExp();
         if (misteryExp instanceof Exp) {
             return parseAddExp(((Exp)misteryExp).getAddExp(), table);
         } else if (misteryExp instanceof LVal) {

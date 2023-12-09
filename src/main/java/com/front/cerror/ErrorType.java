@@ -5,5 +5,6 @@ public enum ErrorType {
     EXPECT_TOKEN,
     UNEXPECTED_TOKEN,
     CONST_FAIL,
-    INVALID_CONST_LIST
+    INVALID_CONST_LIST,
+    EXP_PARSE_FAIL,
 }

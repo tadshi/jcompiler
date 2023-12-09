@@ -17,7 +17,6 @@ import com.front.gunit.ConstInitVal;
 import com.front.gunit.ConstInitValList;
 import com.front.gunit.Ident;
 import com.front.gunit.ObjectClass;
-import com.front.gunit.VarDecl;
 import com.front.gunit.VarDef;
 
 public class SymbolTable {

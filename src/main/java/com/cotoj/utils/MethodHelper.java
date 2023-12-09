@@ -28,11 +28,12 @@ public class MethodHelper {
 
     public void popUse() {
         operandStack -= stackRecord.pop();
-    }
+    }    
 
-    public void reportUsedOpStack(int size) {
-        if (operandStack + size > maxOperandStack) {
-            maxOperandStack = operandStack + size;
+    // Do not get confused with reportUseOpStack!
+    public void reportUsedStack(int usedSize) {
+        if (operandStack + usedSize > maxOperandStack) {
+            maxOperandStack = operandStack + usedSize;
         }
     }
 

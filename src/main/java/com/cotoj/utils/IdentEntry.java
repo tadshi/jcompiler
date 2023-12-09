@@ -6,17 +6,22 @@ import java.util.List;
 public class IdentEntry {
     private final String name;
     private final int level;
+    private final Owner owner; 
     private final SymbolType type;
     private final List<Integer> dimensions;
     private IdentEntry last;
     private final List<Integer> compileTimeValue;
-    public IdentEntry(String name, SymbolType type, int level) {
+    private final String linkPath;
+
+    public IdentEntry(String name, SymbolType type, int level, Owner owner) {
         this.name = name;
         this.type = type;
+        this.owner = owner;
         this.level = level;
         this.last = null;
         this.dimensions = new ArrayList<>();
         this.compileTimeValue = null;
+        this.linkPath = null;
     }
 
     public IdentEntry(String name, SymbolType type, int level, int compileTimeValue) {
@@ -24,9 +29,11 @@ public class IdentEntry {
         this.type = type;
         this.level = level;
         this.last = null;
+        this.owner = Owner.COMPILER;
         this.dimensions = new ArrayList<>();
         this.compileTimeValue = new ArrayList<>();
         this.compileTimeValue.add(compileTimeValue);
+        this.linkPath = null;
     }
 
     public IdentEntry(String name, SymbolType type, int level, List<Integer>compileTimeValues) {
@@ -34,8 +41,21 @@ public class IdentEntry {
         this.type = type;
         this.level = level;
         this.last = null;
+        this.owner = Owner.COMPILER;
         this.dimensions = new ArrayList<>();
         this.compileTimeValue = new ArrayList<>(compileTimeValues);
+        this.linkPath = null;
+    }
+
+    public IdentEntry(String name, SymbolType type, String exString) {
+        this.name = name;
+        this.type = type;
+        this.level = 0;
+        this.last = null;
+        this.owner = Owner.EXLIB;
+        this.dimensions = new ArrayList<>();
+        this.compileTimeValue = null;
+        this.linkPath = exString;
     }
 
     public void addDimension(int dimension) {
@@ -92,4 +112,9 @@ public class IdentEntry {
     public boolean isArray() {
         return dimensions.isEmpty();
     }
+
+    public boolean isConst() {
+        return compileTimeValue != null;
+    }
+
 }
