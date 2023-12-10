@@ -81,7 +81,7 @@ public interface ConstExpParser {
             case "DIV /" -> parseMulExp(exp.getMulExp(), table) / parseUnaryExp(exp.getUnaryExp(), table);
             case "MOD %" -> parseMulExp(exp.getMulExp(), table) % parseUnaryExp(exp.getUnaryExp(), table);
             default -> throw new RuntimeException(exp.getCh());
-        }
+        };
     }
 
     private static int parseAddExp(AddExp addExp, SymbolTable table) {
@@ -91,7 +91,7 @@ public interface ConstExpParser {
             case "PLUS +" -> parseAddExp(addExp.getAddExp(), table) + parseMulExp(addExp.getMulExp(), table);
             case "MINU -" -> parseAddExp(addExp.getAddExp(), table) - parseMulExp(addExp.getMulExp(), table);
             default -> throw new RuntimeException(addExp.getCh());
-        }
+        };
     }
 
     public static int parseConstExp(ConstExp constExp, SymbolTable table) {

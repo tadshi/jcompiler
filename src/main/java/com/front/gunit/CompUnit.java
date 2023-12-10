@@ -2,9 +2,9 @@ package com.front.gunit;
 import java.util.ArrayList;
 
 public class CompUnit extends ObjectClass{
-    ArrayList<Decl> decls = new ArrayList<>();
-    ArrayList<FuncDef> funcDefs = new ArrayList<>();
-    MainFuncDef mainFuncDef;
+    private ArrayList<Decl> decls = new ArrayList<>();
+    private ArrayList<FuncDef> funcDefs = new ArrayList<>();
+    private MainFuncDef mainFuncDef;
 
     public void addDecl(Decl decl) {
         decls.add(decl);
@@ -16,5 +16,17 @@ public class CompUnit extends ObjectClass{
 
     public void setMainFuncDef(MainFuncDef mainFuncDef){
         this.mainFuncDef = mainFuncDef;
+    }
+
+    public ArrayList<Decl> getDecls() {
+        return decls;
+    }
+
+    public ArrayList<FuncDef> getFuncDefs() {
+        return funcDefs;
+    }
+
+    public MainFuncDef getMainFuncDef() {
+        return mainFuncDef;
     }
 }

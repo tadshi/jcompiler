@@ -63,6 +63,10 @@ public class IdentEntry {
         }
     }
 
+    public List<Integer> getCompileTimeValues() {
+        return compileTimeValue;
+    }
+
     public int indexCompileTimeValue(List<Integer> indexes) {
         if (!(def instanceof ArrayDefNode)) {
             throw new RuntimeException("No, this is not an array.");
