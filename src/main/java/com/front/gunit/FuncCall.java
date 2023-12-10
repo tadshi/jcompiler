@@ -1,7 +1,7 @@
 package com.front.gunit;
 public class FuncCall extends ObjectClass{
-    Ident ident;
-    FuncRParams funcRParams;
+    private Ident ident;
+    private FuncRParams funcRParams;
 
     public void setIdent(Ident ident){
         this.ident = ident;
@@ -10,4 +10,13 @@ public class FuncCall extends ObjectClass{
     public void setFuncRParams(FuncRParams funcRParams){
         this.funcRParams = funcRParams;
     }
+
+    public FuncRParams getFuncRParams() {
+        return funcRParams;
+    }
+
+    public Ident getIdent() {
+        return ident;
+    }
+    
 }

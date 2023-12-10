@@ -1,5 +1,5 @@
 package com.front.gunit;
-public class PrimaryExp extends Exp{
+public class PrimaryExp extends ObjectClass {
     private ObjectClass wrappedExp = new ObjectClass();
 
     public void setWrappedExp(ObjectClass primaryExp){

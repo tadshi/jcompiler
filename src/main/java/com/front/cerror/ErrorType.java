@@ -7,4 +7,6 @@ public enum ErrorType {
     CONST_FAIL,
     INVALID_CONST_LIST,
     EXP_PARSE_FAIL,
+    ARRAY_DIM_ERROR,
+    FUNC_PARAM_FAIL,
 }

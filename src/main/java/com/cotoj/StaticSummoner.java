@@ -3,10 +3,11 @@ package com.cotoj;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.cotoj.adaptor.ArrayDefNode;
+import com.cotoj.adaptor.DefNode;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
@@ -31,15 +32,17 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
 
     public void parseStaticDef(VarDef varDef, SymbolTable table) {
         IdentEntry entry = table.addVarDef(varDef);
+        DefNode def = entry.getDef();
         String descriptor = "I";
-        if (entry.isArray()) {
-            descriptor = "[".repeat(entry.getDimensions().size()) + descriptor;
+        if (def instanceof ArrayDefNode) {
+            ArrayDefNode arrayDef = ((ArrayDefNode)def);
+            descriptor = "[".repeat(arrayDef.getDimSizes().size()) + descriptor;
             cv.visitField(ACC_PUBLIC + ACC_STATIC, entry.getName(), descriptor, null, null).visitEnd();
-            for (int dim : entry.getDimensions()) {
-                initVisitor.visitIntInsn(SIPUSH, dim);
+            for (int dimSize : arrayDef.getDimSizes()) {
+                initVisitor.visitIntInsn(SIPUSH, dimSize);
             }
-            initHelper.reportUsedStack(entry.getDimensions().size());
-            initVisitor.visitMultiANewArrayInsn(descriptor, entry.getDimensions().size());
+            initHelper.reportUsedStack(arrayDef.getDimSizes().size());
+            initVisitor.visitMultiANewArrayInsn(descriptor, arrayDef.getDimSizes().size());
             initVisitor.visitFieldInsn(Opcodes.PUTSTATIC, "com/oto/Static", entry.getName(), descriptor);
             // TODO
             

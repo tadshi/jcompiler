@@ -1090,12 +1090,12 @@ public class GrammaticalParser {
 
                 }
                 id2Object.put(treeId++, funcCall);
-                ret.setUnaryExp(funcCall);
+                ret.setWrappedExp(funcCall);
             } else {
                 grammarId--;
                 grammarId--;
                 PrimaryExp primaryExp = parsePrimaryExp();
-                ret.setUnaryExp(primaryExp);
+                ret.setWrappedExp(primaryExp);
             }
         } else if ((word.content.equals("+") || word.content.equals("-") || (word.content.equals("!")))) {
             OpExp opExp = new OpExp();
@@ -1104,11 +1104,11 @@ public class GrammaticalParser {
             UnaryExp unaryExp = parseUnaryExp();
             opExp.setUnaryExp(unaryExp);
             id2Object.put(treeId++, opExp);
-            ret.setUnaryExp(unaryExp);
+            ret.setWrappedExp(unaryExp);
         } else {
             grammarId--;
             PrimaryExp primaryExp = parsePrimaryExp();
-            ret.setUnaryExp(primaryExp);
+            ret.setWrappedExp(primaryExp);
         }
 
         id2Object.put(treeId++, ret);

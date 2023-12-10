@@ -1,5 +1,5 @@
 package com.front.gunit;
-public class MulExp extends Exp{
+public class MulExp extends ObjectClass{
     private UnaryExp unaryExp;
     private String ch;
     private MulExp mulExp;

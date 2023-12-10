@@ -8,12 +8,15 @@ import com.front.cerror.ErrorType;
 
 import java.util.List;
 
+import com.cotoj.adaptor.ArrayDefNode;
+import com.cotoj.adaptor.DefNode;
+import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.IdentEntry;
+import com.cotoj.utils.Owner;
 import com.cotoj.utils.SymbolType;
 import com.front.cerror.CError;
 import com.front.gunit.ConstDef;
 import com.front.gunit.ConstExp;
-import com.front.gunit.ConstInitVal;
 import com.front.gunit.ConstInitValList;
 import com.front.gunit.Ident;
 import com.front.gunit.ObjectClass;
@@ -50,7 +53,7 @@ public class SymbolTable {
     public IdentEntry getEntry(String name, SymbolType symbolType) {
         IdentEntry entry = ident_table.get(name);
         while (entry != null) {
-            if (entry.getType() == symbolType) {
+            if (SymbolType.fromDef(entry.getDef()) == symbolType) {
                 return entry;
             }
             entry = entry.getLast();
@@ -75,16 +78,22 @@ public class SymbolTable {
 
     public IdentEntry addVarDef(VarDef varDef) {
         Ident ident = varDef.getIdent();
-        IdentEntry entry = new IdentEntry(ident.getName(), SymbolType.fromString(ident.getKind()), getLevel());
+        DefNode def;
         if (ident.getDimension() > 0) {
+            // This Logic is not true but we cannot get more info from AST.
+            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ? new Owner.Static() : new Owner.Local(), true);
             var dimList = varDef.getConstExpList();
             if (dimList.size() != ident.getDimension()) {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
             }
             for (ConstExp exp : dimList) {
-                entry.addDimension(ConstExpParser.parseConstExp(exp, this));
+                arrayDef.addDimension(ConstExpParser.parseConstExp(exp, this));
             }
+            def = arrayDef;
+        } else {
+            def = new VarDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), true);
         }
+        IdentEntry entry = new IdentEntry(def, getLevel());
         addEntry(entry);
         return entry;
     }
@@ -94,27 +103,34 @@ public class SymbolTable {
         ObjectClass initVal = constDef.getConstInitVal().getConstForm();
         IdentEntry entry;
 
+        // Note that every constant in our lang can be inferred at compile-time
+        // And in this way every constant is a non-mut variable.
+        // However, there do exists a non-mut variable which is not a constant,
+        // Even though we have not supported it yet.
+        // Be careful to not be confused by the difference between frontend and backend.
         if (ident.getDimension() > 0) {
             if (!(initVal instanceof ConstInitValList)) {
                 throw new RuntimeException("Why you init a const array without a List?");
             }
-            List<Integer> initVals = ConstExpParser.parseConstList((ConstInitValList)initVal, this);
-            entry = new IdentEntry(ident.getName(), SymbolType.fromString(ident.getKind()), getLevel(), initVals);
+            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), false);
             var dimList = constDef.getConstExps();
             if (dimList.size() != ident.getDimension()) {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
             }
             for (ConstExp exp : dimList) {
-                entry.addDimension(ConstExpParser.parseConstExp(exp, this));
+                arrayDef.addDimension(ConstExpParser.parseConstExp(exp, this));
             }
-            if (entry.getDimensions().stream().reduce((a, b) -> a * b).get() != initVals.size()) {
+            List<Integer> initVals = ConstExpParser.parseConstList((ConstInitValList)initVal, this);
+            if (arrayDef.getDimSizes().stream().reduce((a, b) -> a * b).get() != initVals.size()) {
                 throw new CError(ErrorType.INVALID_CONST_LIST, "The const init list size is only " + initVals.size() + ".");
             }
+            entry = new IdentEntry(arrayDef, getLevel(), initVals);
         } else {
             if (!(initVal instanceof ConstExp)) {
                 throw new RuntimeException("Why you init a const without a constExp?");
             }
-            entry = new IdentEntry(ident.getName(), SymbolType.fromString(ident.getKind()), getLevel(), ConstExpParser.parseConstExp((ConstExp)initVal, this));
+            VarDefNode varDef = new VarDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), false);
+            entry = new IdentEntry(varDef, getLevel(), ConstExpParser.parseConstExp((ConstExp)initVal, this));
         }
         addEntry(entry);
         return entry;

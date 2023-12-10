@@ -1,12 +1,12 @@
 package com.front.gunit;
-public class UnaryExp extends Exp{
-    private ObjectClass unaryExp;
+public class UnaryExp extends ObjectClass {
+    private ObjectClass wrappedExp;
 
-    public void setUnaryExp(ObjectClass unaryExp){
-        this.unaryExp = unaryExp;
+    public void setWrappedExp(ObjectClass wrappedUnaryExp){
+        this.wrappedExp = wrappedUnaryExp;
     }
 
-    public ObjectClass getUnaryExp() {
-        return unaryExp;
+    public ObjectClass getWrappedExp() {
+        return wrappedExp;
     }
 }

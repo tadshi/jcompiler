@@ -57,7 +57,7 @@ public interface ConstExpParser {
 
     // <UnaryExp> ::= <PrimaryExp> | <Ident> ([<FuncRParams]) | <UnaryOp> <UnaryExp>
     private static int parseUnaryExp(UnaryExp exp, SymbolTable table) {
-        ObjectClass misteryExp = exp.getUnaryExp();
+        ObjectClass misteryExp = exp.getWrappedExp();
         if (misteryExp instanceof OpExp) {
             OpExp opExp = ((OpExp)misteryExp);
             if (opExp.getUnaryOp().getOp() == "PLUS +") {
