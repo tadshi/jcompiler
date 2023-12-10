@@ -13,15 +13,12 @@ public enum SymbolType {
     LABEL; // Unused
 
     public static SymbolType fromString(String string) {
-        if (string == "PROC") {
-            return FUNCTION;
-        } else if (string == "VAR") {
-            return VARIABLE;
-        } else if (string == "PARA") {
-            throw new CError(ErrorType.UNEXPECTED_TOKEN, string);
-        } else {
-            throw new RuntimeException("Why " + string + " should occur here?");
-        }
+        return switch (string) {
+            case "PROC" -> FUNCTION;
+            case "VAR" -> VARIABLE;
+            case "PARA" -> throw new CError(ErrorType.UNEXPECTED_TOKEN, string);
+            default -> throw new RuntimeException("Why " + string + " should occur here?");
+        };
     }
 
     public static SymbolType fromDef(DefNode def) {

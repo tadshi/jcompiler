@@ -53,7 +53,7 @@ public class SymbolTable {
     public IdentEntry getEntry(String name, SymbolType symbolType) {
         IdentEntry entry = ident_table.get(name);
         while (entry != null) {
-            if (SymbolType.fromDef(entry.getDef()) == symbolType) {
+            if (SymbolType.fromDef(entry.getDef()).equals(symbolType)) {
                 return entry;
             }
             entry = entry.getLast();

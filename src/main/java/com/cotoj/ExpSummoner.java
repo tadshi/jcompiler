@@ -78,13 +78,13 @@ public interface ExpSummoner extends Opcodes {
         switch (unaryExp.getWrappedExp()) {
             case PrimaryExp primaryExp -> summonPrimaryExp(primaryExp, mv, helper, table);
             case OpExp opExp -> {
-                if (opExp.getUnaryOp().getOp() == "PLUS +") {
-                    summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
-                } else if (opExp.getUnaryOp().getOp() == "MINU -") {
-                    summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
-                    mv.visitInsn(INEG);
-                } else {
-                    throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
+                switch (opExp.getUnaryOp().getOp()) {
+                    case "PLUS +" -> summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
+                    case "MINU -" -> {
+                        summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
+                        mv.visitInsn(INEG);
+                    }
+                    default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
                 }
                 helper.reportPopOpStack(1);
                 helper.reportUseOpStack(1);
@@ -147,14 +147,11 @@ public interface ExpSummoner extends Opcodes {
         } else {
             summonMulExp(mulExp.getMulExp(), mv, helper, table);
             summonUnaryExp(mulExp.getUnaryExp(), mv, helper, table);
-            if (mulExp.getCh() == "MULT *") {
-                mv.visitInsn(IMUL);
-            } else if (mulExp.getCh() == "DIV /") {
-                mv.visitInsn(IDIV);
-            } else if (mulExp.getCh() == "MOD %") {
-                mv.visitInsn(IREM);
-            } else {
-                throw new RuntimeException(mulExp.getCh());
+            switch (mulExp.getCh()) {
+                case "MULT *" -> mv.visitInsn(IMUL);
+                case "DIV /" -> mv.visitInsn(IDIV);
+                case "MOD %" -> mv.visitInsn(IREM);
+                default -> throw new RuntimeException(mulExp.getCh());
             }
             helper.reportPopOpStack(2);
             helper.reportUseOpStack(1);
@@ -170,12 +167,10 @@ public interface ExpSummoner extends Opcodes {
         } else {
             summonAddExp(addExp.getAddExp(), mv, helper, table);
             summonMulExp(addExp.getMulExp(), mv, helper, table);
-            if (addExp.getCh() == "PLUS +") {
-                mv.visitInsn(IADD);
-            } else if  (addExp.getCh() == "MINU -") {
-                mv.visitInsn(ISUB);
-            } else {
-                throw new RuntimeException(addExp.getCh());
+            switch (addExp.getCh()) {
+                case "PLUS +" -> mv.visitInsn(IADD);
+                case "MINU -" -> mv.visitInsn(ISUB);
+                default -> throw new RuntimeException(addExp.getCh());
             }
             helper.reportPopOpStack(2);
             helper.reportUseOpStack(1);

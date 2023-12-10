@@ -60,12 +60,10 @@ public interface ConstExpParser {
         ObjectClass misteryExp = exp.getWrappedExp();
         if (misteryExp instanceof OpExp) {
             OpExp opExp = ((OpExp)misteryExp);
-            if (opExp.getUnaryOp().getOp() == "PLUS +") {
-                return parseUnaryExp(opExp.getUnaryExp(), table);
-            } else if (opExp.getUnaryOp().getOp() == "MINU -") {
-                return -parseUnaryExp(opExp.getUnaryExp(), table);
-            } else {
-                throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
+            switch (opExp.getUnaryOp().getOp()) {
+                case "PLUS +" -> {return parseUnaryExp(opExp.getUnaryExp(), table);}
+                case "MINU -" -> {return -parseUnaryExp(opExp.getUnaryExp(), table);}
+                default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
             }
         } else if (misteryExp instanceof PrimaryExp) {
             PrimaryExp primaryExp = ((PrimaryExp)misteryExp);
@@ -78,30 +76,21 @@ public interface ConstExpParser {
     private static int parseMulExp(MulExp exp, SymbolTable table) {
         if (exp.getMulExp() == null) {
             return parseUnaryExp(exp.getUnaryExp(), table);
-        } else {
-            if (exp.getCh() == "MULT *") {
-                return parseMulExp(exp.getMulExp(), table) * parseUnaryExp(exp.getUnaryExp(), table);
-            } else if (exp.getCh() == "DIV /") {
-                return parseMulExp(exp.getMulExp(), table) / parseUnaryExp(exp.getUnaryExp(), table);
-            } else if (exp.getCh() == "MOD %") {
-                return parseMulExp(exp.getMulExp(), table) % parseUnaryExp(exp.getUnaryExp(), table);
-            } else {
-                throw new RuntimeException(exp.getCh());
-            }
+        } else return switch (exp.getCh()) {
+            case "MULT *" -> parseMulExp(exp.getMulExp(), table) * parseUnaryExp(exp.getUnaryExp(), table);
+            case "DIV /" -> parseMulExp(exp.getMulExp(), table) / parseUnaryExp(exp.getUnaryExp(), table);
+            case "MOD %" -> parseMulExp(exp.getMulExp(), table) % parseUnaryExp(exp.getUnaryExp(), table);
+            default -> throw new RuntimeException(exp.getCh());
         }
     }
 
     private static int parseAddExp(AddExp addExp, SymbolTable table) {
         if (addExp.getAddExp() == null) {
             return parseMulExp(addExp.getMulExp(), table);
-        } else {
-            if (addExp.getCh() == "PLUS +") {
-                return parseAddExp(addExp.getAddExp(), table) + parseMulExp(addExp.getMulExp(), table);
-            } else if  (addExp.getCh() == "MINU -") {
-                return parseAddExp(addExp.getAddExp(), table) - parseMulExp(addExp.getMulExp(), table);
-            } else {
-                throw new RuntimeException(addExp.getCh());
-            }
+        } else return switch (addExp.getCh()) {
+            case "PLUS +" -> parseAddExp(addExp.getAddExp(), table) + parseMulExp(addExp.getMulExp(), table);
+            case "MINU -" -> parseAddExp(addExp.getAddExp(), table) - parseMulExp(addExp.getMulExp(), table);
+            default -> throw new RuntimeException(addExp.getCh());
         }
     }
 
