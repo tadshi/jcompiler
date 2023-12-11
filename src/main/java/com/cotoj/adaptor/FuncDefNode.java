@@ -5,7 +5,7 @@ import java.util.List;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 
-public class FuncDefNode extends DefNode {
+public final class FuncDefNode extends DefNode {
     private ReturnType returnType;
     private List<FuncParamNode> params;
 
@@ -26,6 +26,7 @@ public class FuncDefNode extends DefNode {
         return returnType;
     }
 
+    @Override
     public String getTypeString() {
         StringBuilder sb = new StringBuilder();
         sb.append('(');

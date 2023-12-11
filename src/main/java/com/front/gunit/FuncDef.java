@@ -1,9 +1,9 @@
 package com.front.gunit;
 public class FuncDef extends ObjectClass{
-    FuncType funcType;
-    Ident ident;
-    FuncFParams funcFParams;
-    Block block;
+    private FuncType funcType;
+    private Ident ident;
+    private FuncFParams funcFParams;
+    private Block block;
 
 
     public void setFuncType(FuncType funcType){
@@ -20,5 +20,22 @@ public class FuncDef extends ObjectClass{
 
     public void setBlock(Block block){
         this.block = block;
+    }
+
+
+    public Block getBlock() {
+        return block;
+    }
+
+    public FuncFParams getFuncFParams() {
+        return funcFParams;
+    }
+
+    public FuncType getFuncType() {
+        return funcType;
+    }
+
+    public Ident getIdent() {
+        return ident;
     }
 }

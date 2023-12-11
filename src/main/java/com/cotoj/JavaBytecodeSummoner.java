@@ -8,15 +8,21 @@ import com.front.gunit.*;
 public class JavaBytecodeSummoner {
     SymbolTable symbolTable;
     StaticSummoner staticSummoner;
+    MainSummoner mainSummoner;
     
     public JavaBytecodeSummoner(Path logFolder) {
         symbolTable = new SymbolTable();
         try {
             staticSummoner = new StaticSummoner(logFolder.resolve("Static").toFile());
+            mainSummoner = new MainSummoner(logFolder.resolve("Main").toFile());
         } catch (FileNotFoundException exp) {
             System.err.println("Fail to create log files.");
             exp.printStackTrace();
         }
+    }
+
+    public void summonBlock() {
+
     }
     
     public void summon(CompUnit compUnit) {
@@ -37,5 +43,6 @@ public class JavaBytecodeSummoner {
             }
         }
         staticSummoner.masterUp();
+        
     }
 }

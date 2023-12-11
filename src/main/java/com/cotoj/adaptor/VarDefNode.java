@@ -2,7 +2,7 @@ package com.cotoj.adaptor;
 
 import com.cotoj.utils.Owner;
 
-public class VarDefNode extends DefNode {
+public final class VarDefNode extends DefNode {
     private boolean mut;
 
     public VarDefNode(String name, Owner owner, boolean mut) {
@@ -14,6 +14,7 @@ public class VarDefNode extends DefNode {
         return mut;
     }
 
+    @Override
     public String getTypeString() {
         return "I";
     }

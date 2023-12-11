@@ -14,6 +14,7 @@ import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
+import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
@@ -36,7 +37,7 @@ public interface ExpSummoner extends Opcodes {
                         default -> throw new RuntimeException("No, we cannot deal with" + owner);
                     }
                 }
-                helper.reportUseOpStack(1);
+                helper.reportUseOpStack(1, varDef.getTypeString());
             } 
             case ArrayDefNode arrayDef -> {
                 List<Exp> indexes = lVal.getExps();
@@ -50,13 +51,13 @@ public interface ExpSummoner extends Opcodes {
                     case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
                     default -> throw new RuntimeException("No, we cannot deal with" + owner);
                 }
-                helper.reportUseOpStack(1);
+                helper.reportUseOpStack(1, arrayDef.getTypeString());
                 for (Exp index : indexes) {
                     ExpSummoner.summonAddExp(index.getAddExp(), mv, helper, table);
                 }
                 mv.visitInsn(IALOAD);
                 helper.reportPopOpStack(indexes.size() + 1);
-                helper.reportUseOpStack(1);
+                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
             } 
             default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, def.getClass() + " should not be used as LVal.");
         }
@@ -68,7 +69,7 @@ public interface ExpSummoner extends Opcodes {
             case LVal lval -> summonLVal(lval, mv, helper, table);
             case GNumber number -> {
                 mv.visitLdcInsn(number.getNumber());
-                helper.reportUseOpStack(1);
+                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
             }
             default -> throw new RuntimeException(primaryExp.getWrappedExp().getClass() + " should not found in PrimaryExp");
         }
@@ -87,7 +88,7 @@ public interface ExpSummoner extends Opcodes {
                     default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
                 }
                 helper.reportPopOpStack(1);
-                helper.reportUseOpStack(1);
+                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
             } 
             case FuncCall funcCall -> {
                 IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.fromString(funcCall.getIdent().getKind()));
@@ -97,7 +98,7 @@ public interface ExpSummoner extends Opcodes {
                 FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
                 if (funcDef.getOwner() instanceof Owner.ExVarLib(String varOwner, String varType, String varName, String methodName)) {
                     mv.visitFieldInsn(GETSTATIC, varOwner, varName, varType);
-                    helper.reportUseOpStack(1);
+                    helper.reportUseOpStack(1, funcDef.getTypeString());
                 }
                 List<Exp> rparams = funcCall.getFuncRParams().getExps();
                 if (rparams.size() != funcDef.getParams().size()) {
@@ -121,7 +122,7 @@ public interface ExpSummoner extends Opcodes {
                                 case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
                                 default -> throw new RuntimeException("No, an array must beheld!");
                             }
-                            helper.reportUseOpStack(1);
+                            helper.reportUseOpStack(1, ((ArrayDefNode)arrayDef).getTypeString());
                         }
                         default -> throw new RuntimeException("What is this param? " + funcDef.getParams().get(i));
                     }
@@ -154,7 +155,7 @@ public interface ExpSummoner extends Opcodes {
                 default -> throw new RuntimeException(mulExp.getCh());
             }
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1);
+            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
         }
     }
 
@@ -173,7 +174,7 @@ public interface ExpSummoner extends Opcodes {
                 default -> throw new RuntimeException(addExp.getCh());
             }
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1);
+            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
         }
     }
 

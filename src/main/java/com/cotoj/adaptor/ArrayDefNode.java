@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.cotoj.utils.Owner;
 
-public class ArrayDefNode extends DefNode {
+public final class ArrayDefNode extends DefNode {
     private boolean mut;
     private List<Integer> dimSizes;
     
@@ -27,6 +27,7 @@ public class ArrayDefNode extends DefNode {
         return dimSizes;
     }
 
+    @Override
     public String getTypeString() {
         return "[".repeat(dimSizes.size()) + "I";
     }

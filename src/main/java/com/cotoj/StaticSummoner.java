@@ -12,6 +12,7 @@ import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
+import com.cotoj.utils.ReturnType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.ConstDef;
@@ -34,7 +35,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         initVisitor.visitCode();
         initVisitor.visitVarInsn(ALOAD, 0);
         initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        initHelper = new MethodHelper();
+        initHelper = new MethodHelper("com/oto/Static");
     }
 
     private void parseArrayInit(ArrayDefNode arrayDef, InitValList initList, int level, int shift, SymbolTable table) {
@@ -53,8 +54,9 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                         throw new CError(ErrorType.UNEXPECTED_TOKEN, "There should be more levels.");
                     }
                     initVisitor.visitInsn(DUP);
+                    initHelper.reportUseOpStack(1, arrayDef.getTypeString());
                     initVisitor.visitLdcInsn(shift + i);
-                    initHelper.reportUseOpStack(2);
+                    initHelper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
                     ExpSummoner.summonExp(exp, initVisitor, initHelper, table);
                     initVisitor.visitInsn(IASTORE);
                     initHelper.reportPopOpStack(3);
@@ -76,7 +78,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                 }
                 initHelper.reportUsedStack(arrayDef.getDimSizes().size());
                 initVisitor.visitMultiANewArrayInsn(arrayDef.getTypeString(), arrayDef.getDimSizes().size());
-                initHelper.reportUseOpStack(1);
+                initHelper.reportUseOpStack(1, arrayDef.getTypeString());
                 InitVal initVal = varDef.getInitVal();
                 if (initVal != null) {
                     if (!(initVal.getInitForm() instanceof InitValList)) {
@@ -115,7 +117,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                 }
                 initHelper.reportUsedStack(arrayDef.getDimSizes().size());
                 initVisitor.visitMultiANewArrayInsn(arrayDef.getTypeString(), arrayDef.getDimSizes().size());
-                initHelper.reportUseOpStack(1);
+                initHelper.reportUseOpStack(1, arrayDef.getTypeString());
                 int index = 0;
                 for (Integer compileTimeValue : entry.getCompileTimeValues()) {
                     initVisitor.visitInsn(DUP);
@@ -130,7 +132,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
             case VarDefNode varDef -> {
                 cv.visitField(ACC_PUBLIC + ACC_STATIC + ACC_FINAL, entry.getName(), varDef.getTypeString(), null, entry.getCompileTimeValue()).visitEnd();
                 // I'm not sure
-                initHelper.reportUseOpStack(1);
+                initHelper.reportUsedStack(1);
             }
             default -> throw new RuntimeException("No, I do not know this type of const def.");
         }
@@ -138,6 +140,8 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
 
     @Override
     public void masterUp() {
+        initHelper.visitFrame(initVisitor);
+        initVisitor.visitInsn(RETURN);
         initHelper.visitMaxs(initVisitor);
         initVisitor.visitEnd();
         super.masterUp();
