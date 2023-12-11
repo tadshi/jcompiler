@@ -237,7 +237,7 @@ public class GrammaticalParser {
                         //error
                     }
                     Stmt stmt = parseStmt();
-                    whileStmt.setWrappedStmt(stmt);
+                    whileStmt.setStmt(stmt);
                 }
                 id2Object.put(treeId++, whileStmt);
                 ret.setWrappedStmt(whileStmt);

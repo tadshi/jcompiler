@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
+import org.objectweb.asm.Label;
+
 import com.front.cerror.ErrorType;
 
 import java.util.List;
@@ -33,11 +35,17 @@ public class SymbolTable {
     private final Stack<IdentEntry> table;
     private final Stack<Integer> context;
     private final Map<String, IdentEntry> ident_table;
+    
+    private record LabelPair(Label label, int level) {};
+    LabelPair breakLabelPair;
+    Stack<LabelPair> contLabelPairs;
 
     public SymbolTable() {
         table = new Stack<>();
         context = new Stack<>();
         ident_table = new HashMap<>();
+        breakLabelPair = null;
+        contLabelPairs = new Stack<>();
     }
 
     private void popTable() {
@@ -173,5 +181,9 @@ public class SymbolTable {
         for (FuncParamNode param: funcDef.getParams()) {
             addEntry(new IdentEntry(param.toDef(), getLevel()));
         }
+    }
+
+    public void registerLoop() {
+        // TODO
     }
 }

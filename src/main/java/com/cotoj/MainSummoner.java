@@ -3,6 +3,7 @@ package com.cotoj;
 import java.io.File;
 import java.io.FileNotFoundException;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -19,11 +20,15 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.Block;
 import com.front.gunit.BlockItem;
 import com.front.gunit.Decl;
+import com.front.gunit.Exp;
+import com.front.gunit.ExpStmt;
 import com.front.gunit.ConstDecl;
 import com.front.gunit.ConstDef;
 import com.front.gunit.VarDecl;
 import com.front.gunit.VarDef;
+import com.front.gunit.WhileStmt;
 import com.front.gunit.FuncDef;
+import com.front.gunit.IfStmt;
 import com.front.gunit.LVal;
 import com.front.gunit.LValDecl;
 import com.front.gunit.Stmt;
@@ -50,11 +55,74 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         helper.reportPopOpStack(1);
                     }
                     case ArrayDefNode arrayDef -> {
-                        
+                        if (arrayDef.getDimSizes().size() - 1 != lVal.getExps().size()) {
+                            throw new CError(ErrorType.ARRAY_DIM_ERROR, "Expect " + arrayDef.getDimSizes().size() + ", found " + lVal.getExps().size());
+                        }
+                        switch (arrayDef.getOwner()) {
+                            case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
+                            case Owner.Local() -> mv.visitIntInsn(ALOAD, helper.getVarIndex(arrayDef));
+                            default -> throw new RuntimeException("We cannot recognize " + arrayDef.getOwner() + "in lval.");
+                        }
+                        helper.reportUseOpStack(1, arrayDef.getDescriptor());
+                        for (int index = 0; index < lVal.getExps().size() - 1; ++index) {
+                            ExpSummoner.summonExp(lVal.getExps().get(index), mv, helper, table);
+                            mv.visitInsn(AALOAD);
+                            helper.reportPopOpStack(2);
+                            helper.reportUseOpStack(1, arrayDef.getIndexedTypeString(index + 1));
+                        }
+                        ExpSummoner.summonExp(lVal.getExps().getLast(), mv, helper, table);
+                        ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
+                        mv.visitInsn(IASTORE);
+                        helper.reportPopOpStack(3);
                     }
                     case FuncDefNode funcDef -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "No, you cannot assign a function.");
                 }
-                
+            }
+            case ExpStmt expStmt -> {
+                Exp exp = expStmt.getExp();
+                if (exp != null) {
+                    ExpSummoner.summonExp(exp, mv, helper, table);
+                    mv.visitInsn(POP);
+                    helper.reportPopOpStack(1);
+                }
+                // else nop?
+            }
+            case Block block -> {
+                table.pushContext();
+                summonBlock(block, mv, table, helper);
+                table.popContext();
+            }
+            case IfStmt ifStmt -> {
+                Label start = new Label();
+                Label else_stmt = new Label();
+                ExpSummoner.summonLOrExp(ifStmt.getCond().getlOrExp(), mv, helper, table, start);
+                mv.visitJumpInsn(IFEQ, else_stmt);
+                summonStmt(ifStmt.getStmt(), mv, table, helper);
+                if (ifStmt.getElseStmt() == null) {
+                    mv.visitLabel(else_stmt);
+                    helper.visitFrame(mv);
+                } else {
+                    Label end = new Label();
+                    mv.visitJumpInsn(GOTO, end);
+                    mv.visitLabel(else_stmt);
+                    helper.visitFrame(mv);
+                    summonStmt(ifStmt.getElseStmt(), mv, table, helper);
+                    mv.visitLabel(end);
+                    helper.visitFrame(mv);
+                }
+            }
+            case WhileStmt whileStmt -> {
+                Label start = new Label();
+                Label end = new Label();
+                ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, end);
+                mv.visitJumpInsn(IFEQ, end);
+                mv.visitLabel(start);
+                helper.visitFrame(mv);
+                summonStmt(whileStmt.getStmt(), mv, table, helper);
+                ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, end);
+                mv.visitJumpInsn(IFNE, start);
+                mv.visitLabel(end);
+                helper.visitFrame(mv);
             }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getWrappedStmt().getClass() + " as a statement.");
         }

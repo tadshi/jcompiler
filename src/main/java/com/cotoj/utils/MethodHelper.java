@@ -1,7 +1,6 @@
 package com.cotoj.utils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +26,6 @@ public class MethodHelper {
     private int localShift;
     private List<String> appendLocals;
     private boolean localCorrcupted;
-    
 
     // Only for constructor!
     public MethodHelper(String constructedClassTypeString) {
@@ -133,6 +131,11 @@ public class MethodHelper {
 
     public int getMaxOperandStack() {
         return maxOperandStack;
+    }
+
+    public void dup(MethodVisitor mv) {
+        reportUseOpStack(1, operandStack.peek());
+        mv.visitInsn(Opcodes.DUP);
     }
 
     public void visitMaxs(MethodVisitor mv) {
