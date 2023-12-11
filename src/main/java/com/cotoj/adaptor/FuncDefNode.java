@@ -27,11 +27,11 @@ public final class FuncDefNode extends DefNode {
     }
 
     @Override
-    public String getTypeString() {
+    public String getDescriptor() {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         for (FuncParamNode param : params) {
-            sb.append(param.getTypeString());
+            sb.append(param.getDescriptor());
         }
         sb.append(')');
         switch (returnType) {

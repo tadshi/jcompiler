@@ -1,7 +1,7 @@
 package com.front.gunit;
 import java.util.ArrayList;
 
-public class ConstDecl extends Decl{
+public final class ConstDecl extends Decl{
     private ArrayList<ConstDef> constDefs = new ArrayList<>();
 
     public void addconstDef(ConstDef constDef){

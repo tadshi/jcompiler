@@ -18,5 +18,5 @@ public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNo
         return owner;
     }
 
-    public abstract String getTypeString();
+    public abstract String getDescriptor();
 }

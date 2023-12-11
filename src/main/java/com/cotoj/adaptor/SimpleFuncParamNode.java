@@ -8,7 +8,7 @@ public final class SimpleFuncParamNode extends FuncParamNode {
     }
 
     @Override
-    public String getTypeString() {
+    public String getDescriptor() {
         return "I";
     }
 

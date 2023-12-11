@@ -11,7 +11,7 @@ public abstract sealed class FuncParamNode permits SimpleFuncParamNode, ArrayFun
         return name;
     }
 
-    public abstract String getTypeString();
+    public abstract String getDescriptor();
 
     public abstract DefNode toDef();
 }

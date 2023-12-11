@@ -14,8 +14,12 @@ public final class VarDefNode extends DefNode {
         return mut;
     }
 
-    @Override
     public String getTypeString() {
+        return "I";
+    }
+
+    @Override
+    public String getDescriptor() {
         return "I";
     }
 }
