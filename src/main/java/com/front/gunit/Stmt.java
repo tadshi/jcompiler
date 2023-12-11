@@ -1,12 +1,12 @@
 package com.front.gunit;
-public class Stmt extends ObjectClass{
-    private ObjectClass wrappedStmt;
+public class Stmt extends ObjectClass implements StmtTrait {
+    private StmtTrait wrappedStmt;
 
-    public void setWrappedStmt(ObjectClass stmt){
+    public void setWrappedStmt(StmtTrait stmt){
         this.wrappedStmt = stmt;
     }
 
-    public ObjectClass getWrappedStmt() {
+    public StmtTrait getWrappedStmt() {
         return wrappedStmt;
     }
 }

@@ -1,5 +1,5 @@
 package com.front.gunit;
-public class LValDecl extends ObjectClass{
+public class LValDecl extends ObjectClass implements StmtTrait {
     private LVal lVal;
     private Exp exp;
 

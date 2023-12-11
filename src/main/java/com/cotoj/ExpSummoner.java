@@ -2,6 +2,7 @@ package com.cotoj;
 
 import java.util.List;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -182,5 +183,87 @@ public interface ExpSummoner extends Opcodes {
     // Evaluate an Exp at Runtime.
     public static void summonExp(Exp exp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         summonAddExp(exp.getAddExp(), mv, helper, table);
-    }    
+    }
+
+    private static void summonRelExp(RelExp relExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        if (relExp.getRelExp() == null) {
+            summonAddExp(relExp.getAddExp(), mv, helper, table);
+        } else {
+            mv.visitInsn(ICONST_1);
+            Label endLabel = new Label();
+            summonRelExp(relExp.getRelExp(), mv, helper, table);
+            summonAddExp(relExp.getAddExp(), mv, helper, table);
+            helper.visitFrame(mv);
+            // Yes we can calculate those without branch
+            // but at 7-8 instructions' cost so
+            switch(relExp.getCh()) {
+                case ">=" -> mv.visitJumpInsn(IF_ICMPGE, endLabel);
+                case "<=" -> mv.visitJumpInsn(IF_ICMPLE, endLabel);
+                case ">" -> mv.visitJumpInsn(IF_ICMPGT, endLabel);
+                case "<" -> mv.visitJumpInsn(IF_ICMPLT, endLabel);
+                default -> throw new RuntimeException("Not sure what is " + relExp.getCh());
+            }
+            mv.visitInsn(POP);
+            mv.visitInsn(ICONST_0);
+            mv.visitLabel(endLabel);
+            helper.visitFrame(mv);
+            mv.visitInsn(NOP); // In case two visitFrame run into each other
+        }
+    }
+
+    private static void summonEqxp(EqExp eqExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        if (eqExp.getEqExp() == null) {
+            summonRelExp(eqExp.getRelExp(), mv, helper, table);
+        } else {
+            summonEqxp(eqExp.getEqExp(), mv, helper, table);
+            summonRelExp(eqExp.getRelExp(), mv, helper, table);
+            mv.visitInsn(IXOR);
+            switch(eqExp.getCh()) {
+                case "==" -> {
+                    mv.visitInsn(INEG);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(ISUB);
+                }
+                case "!=" -> {}
+                default -> throw new RuntimeException("Not sure what is " + eqExp.getCh());
+            }
+            helper.reportPopOpStack(2);
+            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+        }
+    }
+
+    private static boolean summonLAndExp(LAndExp lAndExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
+        if (lAndExp.getlAndExp() == null) {
+            summonEqxp(lAndExp.getEqExp(), mv, helper, table);
+            return false;
+        } else {
+            Label midPoint = new Label();
+            boolean used = summonLAndExp(lAndExp.getlAndExp(), mv, helper, table, skipPoint);
+            if (used) {
+                helper.visitFrame(mv);
+                mv.visitLabel(midPoint);
+            }
+            helper.dup(mv);
+            mv.visitJumpInsn(IFEQ, midPoint);
+            summonEqxp(lAndExp.getEqExp(), mv, helper, table);
+            return true;
+        }
+    }
+
+    public static boolean summonLOrExp(LOrExp lOrExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
+        if (lOrExp.getlOrExp() == null) {
+            return summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint);
+        } else {
+            Label midPoint = new Label();
+            boolean used = summonLOrExp(lOrExp.getlOrExp(), mv, helper, table, midPoint);
+            if (used) {
+                helper.visitFrame(mv);
+                mv.visitLabel(midPoint);
+            }
+            helper.dup(mv);
+            mv.visitJumpInsn(IFNE, skipPoint);
+            summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint);
+            return true;
+        }
+    }
 }

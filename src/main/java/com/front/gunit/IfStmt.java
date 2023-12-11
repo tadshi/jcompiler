@@ -1,8 +1,8 @@
 package com.front.gunit;
-public class IfStmt extends Stmt{
-    Cond cond;
-    Stmt stmt;
-    ElseStmt elseStmt;
+public class IfStmt extends ObjectClass implements StmtTrait {
+    private Cond cond;
+    private Stmt stmt;
+    private ElseStmt elseStmt;
 
     public void setCond(Cond cond){
         this.cond = cond;
@@ -16,4 +16,15 @@ public class IfStmt extends Stmt{
         this.elseStmt = elseStmt;
     }
     
+    public Cond getCond() {
+        return cond;
+    }
+
+    public ElseStmt getElseStmt() {
+        return elseStmt;
+    }
+
+    public Stmt getStmt() {
+        return stmt;
+    }
 }

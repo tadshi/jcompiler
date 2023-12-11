@@ -1,8 +1,8 @@
 package com.front.gunit;
 public class EqExp extends ObjectClass{
-    RelExp relExp;
-    String ch;
-    EqExp eqExp;
+    private RelExp relExp;
+    private String ch;
+    private EqExp eqExp;
 
     public void setRelExp(RelExp relExp){
         this.relExp = relExp;
@@ -14,5 +14,17 @@ public class EqExp extends ObjectClass{
 
     public void setCh(String ch){
         this.ch = ch;
+    }
+
+    public String getCh() {
+        return ch;
+    }
+
+    public EqExp getEqExp() {
+        return eqExp;
+    }
+
+    public RelExp getRelExp() {
+        return relExp;
     }
 }

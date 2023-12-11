@@ -1,8 +1,8 @@
 package com.front.gunit;
 public class LAndExp extends ObjectClass{
-    EqExp eqExp;
-    String ch;
-    LAndExp lAndExp;
+    private EqExp eqExp;
+    private String ch;
+    private LAndExp lAndExp;
 
     public void setEqExp(EqExp eqexp){
         this.eqExp = eqexp;
@@ -14,5 +14,17 @@ public class LAndExp extends ObjectClass{
 
     public void setCh(String ch){
         this.ch = ch;
+    }
+
+    public String getCh() {
+        return ch;
+    }
+
+    public EqExp getEqExp() {
+        return eqExp;
+    }
+
+    public LAndExp getlAndExp() {
+        return lAndExp;
     }
 }
