@@ -2,7 +2,7 @@ package com.cotoj.adaptor;
 
 import com.cotoj.utils.Owner;
 
-public abstract class DefNode {
+public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNode {
     private String name;
     private Owner owner;
 
@@ -17,4 +17,6 @@ public abstract class DefNode {
     public Owner getOwner() {
         return owner;
     }
+
+    public abstract String getTypeString();
 }

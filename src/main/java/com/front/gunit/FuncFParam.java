@@ -1,19 +1,40 @@
 package com.front.gunit;
-public class FuncFParam extends ObjectClass{
-    String type = "Non-array";
-    //type = 0,,非数组,type = 1,一维数组;type = 2,有constexp
-    ConstExp constExp;
-    Ident ident;
 
-    public void setType(String type) {
+import java.util.ArrayList;
+import java.util.List;
+
+public class FuncFParam extends ObjectClass{
+    private FuncParamType type = FuncParamType.NONARRAY;
+    private List<ConstExp> constExp = new ArrayList<>();
+    private Ident ident;
+
+    public enum FuncParamType {
+        NONARRAY, 
+        ARRAY1D,
+        ARRAYMULTID
+    }
+
+    public void setType(FuncParamType type) {
         this.type = type;   
     }
 
-    public void setConstExp(ConstExp constExp){
-        this.constExp = constExp;
+    public void addConstExp(ConstExp constExp){
+        this.constExp.add(constExp);
     }
 
     public void setIdent(Ident ident){
         this.ident = ident;
+    }
+
+    public List<ConstExp> getConstExp() {
+        return constExp;
+    }
+
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public FuncParamType getType() {
+        return type;
     }
 }

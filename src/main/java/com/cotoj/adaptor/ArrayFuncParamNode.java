@@ -3,7 +3,9 @@ package com.cotoj.adaptor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArrayFuncParamNode extends FuncParamNode {
+import com.cotoj.utils.Owner;
+
+public final class ArrayFuncParamNode extends FuncParamNode {
     private int dimLimit;
     private List<Integer> dimSizes;
 
@@ -25,5 +27,19 @@ public class ArrayFuncParamNode extends FuncParamNode {
     @Override
     public String getTypeString() {
         return "[".repeat(dimSizes.size()) + "I";
+    }
+
+    public ArrayDefNode toArrayDef() {
+        ArrayDefNode ret = new ArrayDefNode(getName(), new Owner.Local(), true);
+        ret.addDimension(0);
+        for (int dim : dimSizes) {
+            ret.addDimension(dim);
+        }
+        return ret;
+    }
+
+    @Override
+    public DefNode toDef() {
+        return toArrayDef();
     }
 }

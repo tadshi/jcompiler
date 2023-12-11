@@ -1,6 +1,6 @@
 package com.cotoj.adaptor;
 
-public abstract class FuncParamNode {
+public abstract sealed class FuncParamNode permits SimpleFuncParamNode, ArrayFuncParamNode {
     private String name;
 
     public FuncParamNode(String name) {
@@ -12,4 +12,6 @@ public abstract class FuncParamNode {
     }
 
     public abstract String getTypeString();
+
+    public abstract DefNode toDef();
 }

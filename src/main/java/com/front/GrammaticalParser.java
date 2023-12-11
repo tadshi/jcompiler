@@ -9,6 +9,7 @@ import java.util.Queue;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.*;
+import com.front.gunit.FuncFParam.FuncParamType;
 
 public class GrammaticalParser {
     CompUnit root;
@@ -480,11 +481,11 @@ public class GrammaticalParser {
                 if (wordMap.get(grammarId).type.equals("RBRACK")) {
                     count++;
                     grammarId++;
-                    ret.setType("one-array");
+                    ret.setType(FuncParamType.ARRAY1D);
                     while (wordMap.get(grammarId).type.equals("LBRACK")) {
                         ConstExp constExp = parseConstExp();
-                        ret.setConstExp(constExp);
-                        ret.setType("have-constexp");
+                        ret.addConstExp(constExp);
+                        ret.setType(FuncParamType.ARRAYMULTID);
                         grammarId++;
                         if (!wordMap.get(grammarId).type.equals("RBRACK")) {
                             grammarId--;

@@ -9,15 +9,22 @@ import com.front.cerror.ErrorType;
 import java.util.List;
 
 import com.cotoj.adaptor.ArrayDefNode;
+import com.cotoj.adaptor.ArrayFuncParamNode;
 import com.cotoj.adaptor.DefNode;
+import com.cotoj.adaptor.FuncDefNode;
+import com.cotoj.adaptor.FuncParamNode;
+import com.cotoj.adaptor.SimpleFuncParamNode;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.Owner;
+import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
 import com.front.cerror.CError;
 import com.front.gunit.ConstDef;
 import com.front.gunit.ConstExp;
 import com.front.gunit.ConstInitValList;
+import com.front.gunit.FuncDef;
+import com.front.gunit.FuncFParam;
 import com.front.gunit.Ident;
 import com.front.gunit.ObjectClass;
 import com.front.gunit.VarDef;
@@ -134,5 +141,37 @@ public class SymbolTable {
         }
         addEntry(entry);
         return entry;
+    }
+
+    public IdentEntry addFuncDef(FuncDef funcDef) {
+        Ident ident = funcDef.getIdent();
+        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), new Owner.Main(), ReturnType.fromFuncType(funcDef.getFuncType()));
+        for (FuncFParam funcFParam : funcDef.getFuncFParams().getFuncFParams()) {
+            FuncParamNode paramNode = switch (funcFParam.getType()) {
+                case NONARRAY -> new SimpleFuncParamNode(funcFParam.getIdent().getName());
+                case ARRAY1D -> new ArrayFuncParamNode(funcFParam.getIdent().getName());
+                case ARRAYMULTID -> {
+                    var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName());
+                    for (ConstExp constExp : funcFParam.getConstExp()) {
+                        marrParam.addDim(ConstExpParser.parseConstExp(constExp, this));
+                    }
+                    yield marrParam;
+                }
+            };
+            funcDefNode.addParam(paramNode);
+        }
+        IdentEntry entry = new IdentEntry(funcDefNode, getLevel());
+        return entry;
+    }
+
+    public void loadFunctionParams(String funcName) {
+        IdentEntry entry = getEntry(funcName, SymbolType.FUNCTION);
+        if (!(entry.getDef() instanceof FuncDefNode)) {
+            throw new RuntimeException("No, this is not a function.");
+        }
+        FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
+        for (FuncParamNode param: funcDef.getParams()) {
+            addEntry(new IdentEntry(param.toDef(), getLevel()));
+        }
     }
 }
