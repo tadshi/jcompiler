@@ -10,9 +10,11 @@ import java.util.Stack;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DefNode;
 import com.cotoj.adaptor.FuncDefNode;
 import com.cotoj.adaptor.FuncParamNode;
+import com.cotoj.adaptor.VarDefNode;
 
 public class MethodHelper {
     private int maxOperandStack;
@@ -94,7 +96,11 @@ public class MethodHelper {
                 localCorrcupted = true;
             } else {
                 localShift++;
-                appendLocals.add(def.getTypeString());
+                appendLocals.add(switch (def) {
+                    case VarDefNode varDef -> varDef.getDescriptor();
+                    case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
+                    case FuncDefNode funcDef -> throw new RuntimeException("Why you put a function in the stack?");
+                });
             }
         }
     }
@@ -134,7 +140,11 @@ public class MethodHelper {
     }
 
     private void visitFullFrame(MethodVisitor mv) {
-        Object[] localObjects = localStack.stream().map(def -> def == null ? thisType : def.getTypeString()).toArray();
+        Object[] localObjects = localStack.stream().map(def -> def == null ? thisType : switch(def) {
+            case VarDefNode varDef -> varDef.getDescriptor();
+            case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
+            case FuncDefNode funcDef -> throw new RuntimeException("Why there is a function in the stack?");
+        }).toArray();
         mv.visitFrame(Opcodes.F_FULL, localMap.size(), localObjects, operandStack.size(), operandStack.toArray());
     }
 

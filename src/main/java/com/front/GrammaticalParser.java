@@ -173,11 +173,11 @@ public class GrammaticalParser {
         if (name.equals("CONSTTK") || name.equals("INTTK")) {
             grammarId--;
             Decl decl = parseDecl();
-            ret.setBlockItem(decl); //需要退回一个
+            ret.setWrappedBlockItem(decl); //需要退回一个
         } else {
             grammarId--;
             Stmt stmt = parseStmt();
-            ret.setBlockItem(stmt);
+            ret.setWrappedBlockItem(stmt);
         }
         id2Object.put(treeId++, ret);
         return ret;
@@ -223,7 +223,7 @@ public class GrammaticalParser {
                     }
                 }
                 id2Object.put(treeId++, ifStmt);
-                ret.setStmt(ifStmt);
+                ret.setWrappedStmt(ifStmt);
             }
             case "WHILETK" -> {
                 WhileStmt whileStmt = new WhileStmt();
@@ -237,10 +237,10 @@ public class GrammaticalParser {
                         //error
                     }
                     Stmt stmt = parseStmt();
-                    whileStmt.setStmt(stmt);
+                    whileStmt.setWrappedStmt(stmt);
                 }
                 id2Object.put(treeId++, whileStmt);
-                ret.setStmt(whileStmt);
+                ret.setWrappedStmt(whileStmt);
             }
             case "BREAKTK" -> {
                 BreakStmt breakStmt = new BreakStmt();
@@ -250,7 +250,7 @@ public class GrammaticalParser {
                     //error
                 }
                 id2Object.put(treeId++, breakStmt);
-                ret.setStmt(breakStmt);
+                ret.setWrappedStmt(breakStmt);
             }
             case "CONTINUETK" -> {
                 ContinueStmt continueStmt = new ContinueStmt();
@@ -260,7 +260,7 @@ public class GrammaticalParser {
                     //error
                 }
                 id2Object.put(treeId++, continueStmt);
-                ret.setStmt(continueStmt);
+                ret.setWrappedStmt(continueStmt);
             }
             case "RETURNTK" -> {
                 ReturnStmt returnStmt = new ReturnStmt();
@@ -278,7 +278,7 @@ public class GrammaticalParser {
 
                 }
                 id2Object.put(treeId++, returnStmt);
-                ret.setStmt(returnStmt);
+                ret.setWrappedStmt(returnStmt);
             }
             case "PRINTFTK" -> {
                 PrintStmt printStmt = new PrintStmt();
@@ -306,7 +306,7 @@ public class GrammaticalParser {
                     }
                 }
                 id2Object.put(treeId++, printStmt);
-                ret.setStmt(printStmt);
+                ret.setWrappedStmt(printStmt);
             }
             case "IDENFR" -> {
                 grammarId--;
@@ -330,7 +330,7 @@ public class GrammaticalParser {
                                 //error
                             }
                             id2Object.put(treeId++, lValGetint);
-                            ret.setStmt(lValGetint);
+                            ret.setWrappedStmt(lValGetint);
                         } else {
                             grammarId--;
                             LValDecl lValDecl = new LValDecl();
@@ -338,7 +338,7 @@ public class GrammaticalParser {
                             Exp exp = parseExp();
                             lValDecl.setExp(exp);
                             id2Object.put(treeId++, lValDecl);
-                            ret.setStmt(lValDecl);
+                            ret.setWrappedStmt(lValDecl);
                             grammarId++;
                             if (!wordMap.get(grammarId).content.equals(";")) {
                                 grammarId--;
@@ -351,7 +351,7 @@ public class GrammaticalParser {
                         ExpStmt expStmt = new ExpStmt();
                         Exp exp = parseExp();
                         expStmt.setExp(exp);
-                        ret.setStmt(expStmt);
+                        ret.setWrappedStmt(expStmt);
                         grammarId++;
                         if (!wordMap.get(grammarId).content.equals(";")) {
                             grammarId--;
@@ -362,7 +362,7 @@ public class GrammaticalParser {
                     ExpStmt expStmt = new ExpStmt();
                     Exp exp = parseExp();
                     expStmt.setExp(exp);
-                    ret.setStmt(expStmt);
+                    ret.setWrappedStmt(expStmt);
                     grammarId++;
                     if (!wordMap.get(grammarId).content.equals(";")) {
                         grammarId--;
@@ -373,18 +373,18 @@ public class GrammaticalParser {
             case "LBRACE" -> {
                 grammarId--;
                 Block block = parseBlock();
-                ret.setStmt(block);
+                ret.setWrappedStmt(block);
             }
             case "SEMICN" -> {
                 ExpStmt expStmt = new ExpStmt();
-                ret.setStmt(expStmt);
+                ret.setWrappedStmt(expStmt);
             }
             default -> {
                 grammarId--;
                 ExpStmt expStmt = new ExpStmt();
                 Exp exp = parseExp();
                 expStmt.setExp(exp);
-                ret.setStmt(expStmt);
+                ret.setWrappedStmt(expStmt);
                 grammarId++;
                 if (!wordMap.get(grammarId).content.equals("SEMICN")) {
                     grammarId--;

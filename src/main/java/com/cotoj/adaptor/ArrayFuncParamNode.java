@@ -25,7 +25,7 @@ public final class ArrayFuncParamNode extends FuncParamNode {
     }
 
     @Override
-    public String getTypeString() {
+    public String getDescriptor() {
         return "[".repeat(dimSizes.size()) + "I";
     }
 

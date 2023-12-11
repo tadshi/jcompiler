@@ -27,8 +27,16 @@ public final class ArrayDefNode extends DefNode {
         return dimSizes;
     }
 
-    @Override
+    public String getIndexedTypeString(int level) {
+        return "[".repeat(dimSizes.size() - level) + "I";
+    }
+
     public String getTypeString() {
+        return "[".repeat(dimSizes.size()) + "I";
+    }
+
+    @Override
+    public String getDescriptor() {
         return "[".repeat(dimSizes.size()) + "I";
     }
 }

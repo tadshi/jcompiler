@@ -1,4 +1,4 @@
 package com.front.gunit;
-public abstract class Decl extends ObjectClass{
+public abstract sealed class Decl extends ObjectClass permits VarDecl, ConstDecl{
     
 }

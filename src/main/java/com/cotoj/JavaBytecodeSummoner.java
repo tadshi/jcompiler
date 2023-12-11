@@ -39,7 +39,6 @@ public class JavaBytecodeSummoner {
                         staticSummoner.parseStaticFinalDef(constDef, symbolTable);
                     }
                 }
-                default -> throw new RuntimeException("How do you turn this on?");
             }
         }
         staticSummoner.masterUp();

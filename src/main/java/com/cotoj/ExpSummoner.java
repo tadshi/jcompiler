@@ -12,6 +12,7 @@ import com.cotoj.adaptor.FuncDefNode;
 import com.cotoj.adaptor.SimpleFuncParamNode;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.IdentEntry;
+import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
@@ -32,7 +33,7 @@ public interface ExpSummoner extends Opcodes {
                 } else {
                     Owner owner = varDef.getOwner();
                     switch (owner) {
-                        case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", varDef.getName(), varDef.getTypeString());
+                        case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", varDef.getName(), varDef.getDescriptor());
                         case Owner.Local() -> mv.visitVarInsn(ILOAD, helper.getVarIndex(varDef));
                         default -> throw new RuntimeException("No, we cannot deal with" + owner);
                     }
@@ -47,7 +48,7 @@ public interface ExpSummoner extends Opcodes {
                 }
                 Owner owner = arrayDef.getOwner();
                 switch (owner) {
-                    case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getTypeString());
+                    case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
                     case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
                     default -> throw new RuntimeException("No, we cannot deal with" + owner);
                 }
@@ -97,8 +98,8 @@ public interface ExpSummoner extends Opcodes {
                 }
                 FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
                 if (funcDef.getOwner() instanceof Owner.ExVarLib(String varOwner, String varType, String varName, String methodName)) {
-                    mv.visitFieldInsn(GETSTATIC, varOwner, varName, varType);
-                    helper.reportUseOpStack(1, funcDef.getTypeString());
+                    mv.visitFieldInsn(GETSTATIC, varOwner, varName, JavaType.typeToDescriptor(varType));
+                    helper.reportUseOpStack(1, varType);
                 }
                 List<Exp> rparams = funcCall.getFuncRParams().getExps();
                 if (rparams.size() != funcDef.getParams().size()) {
@@ -128,9 +129,9 @@ public interface ExpSummoner extends Opcodes {
                     }
                 }
                 switch (funcDef.getOwner()) {
-                    case Owner.Main() -> mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", funcDef.getName(), funcDef.getTypeString(), true);
+                    case Owner.Main() -> mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", funcDef.getName(), funcDef.getDescriptor(), true);
                     case Owner.ExVarLib exLib -> mv.visitMethodInsn(INVOKEVIRTUAL, exLib.getVarOwner(), 
-                                                                    exLib.methodName(), funcDef.getTypeString(), false);
+                                                                    exLib.methodName(), funcDef.getDescriptor(), false);
                     default -> throw new RuntimeException("A function cannot be possessed by " + funcDef.getOwner());
                 }
                 helper.reportPopOpStack(rparams.size());
