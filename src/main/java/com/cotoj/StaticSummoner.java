@@ -42,7 +42,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         initVisitor.visitTypeInsn(NEW, "java/util/Scanner");
         initVisitor.visitInsn(DUP);
         initVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        initVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/Scanner", "<init>", "(Ljava/io/PrintStream;)V", false);
+        initVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Scanner", "<init>", "(Ljava/io/PrintStream;)V", false);
         initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", "__jScanner", "Ljava/util/Scanner;");
         initHelper.reportUsedStack(3);
         table.addDefNode(new VarDefNode("__jScanner", Owner.builtinStatic(), new ReturnType.JavaClass("java/util/Scanner"), false));
@@ -59,8 +59,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                     if (level != arrayDef.getDimSizes().size()) {
                         throw new CError(ErrorType.UNEXPECTED_TOKEN, "There should be more levels.");
                     }
-                    initVisitor.visitInsn(DUP);
-                    initHelper.reportUseOpStack(1, arrayDef.getIndexedTypeString(level));
+                    initHelper.dup(initVisitor);
                     initVisitor.visitLdcInsn(i);
                     initHelper.reportUseOpStack(1, "I");
                     ExpSummoner.summonExp(exp, initVisitor, initHelper, table);

@@ -1,8 +1,12 @@
 package com.front.gunit;
 public class MainFuncDef extends ObjectClass{
-    Block block;
+    private Block block;
 
     public void setBlock(Block block){
         this.block = block;
+    }
+
+    public Block getBlock() {
+        return block;
     }
 }

@@ -10,10 +10,15 @@ import org.objectweb.asm.Opcodes;
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DotExp;
 import com.cotoj.adaptor.FuncDefNode;
+import com.cotoj.adaptor.MethodInvokeDotter;
 import com.cotoj.adaptor.Mimic;
+import com.cotoj.adaptor.SimpleFuncParamNode;
+import com.cotoj.adaptor.StaticAccessExp;
 import com.cotoj.adaptor.VarDefNode;
+import com.cotoj.adaptor.VariableFuncParamNode;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
+import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
@@ -30,14 +35,16 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         cv.visit(V17, ACC_PUBLIC + ACC_INTERFACE + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
     }
 
-    public void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
+    private void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
         switch (stmt) {
             case LValDecl assignStmt -> {
                 LVal lVal = assignStmt.getlVal();
                 IdentEntry entry = table.getEntry(lVal.getIdent().getName(), SymbolType.fromString(lVal.getIdent().getKind()));
+                ReturnType lValType = entry.getType();
+                ReturnType rValType;
                 switch (entry.getDef()) {
                     case VarDefNode varDef -> {
-                        ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
+                        rValType = ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
                         switch (varDef.getOwner()) {
                             case Owner.Static sClass -> mv.visitFieldInsn(PUTSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
                             case Owner.Local() -> mv.visitIntInsn(ISTORE, helper.getVarIndex(varDef));
@@ -62,11 +69,14 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                             helper.reportUseOpStack(1, arrayDef.getIndexedTypeString(index + 1));
                         }
                         ExpSummoner.summonExp(lVal.getExps().getLast(), mv, helper, table);
-                        ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
+                        rValType = ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
                         mv.visitInsn(IASTORE);
                         helper.reportPopOpStack(3);
                     }
                     case FuncDefNode funcDef -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "No, you cannot assign a function.");
+                }
+                if (!(lValType.getClass().equals(rValType.getClass()))) {
+                    throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lValType + " while right " + rValType);
                 }
             }
             case ExpStmt expStmt -> {
@@ -154,11 +164,22 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 lValDecl.setExp(new DotExp(Mimic.mimicAddExp("__jScanner", new ReturnType.JavaClass("java/util/Scanner"))));
                 summonStmt(lValDecl, mv, table, helper);
             }
+            case PrintStmt printStmt -> {
+                ReturnType pstream = new ReturnType.JavaClass("java/io/PrintStream");
+                // Suddenly found that we can almost support java8 if we take class into type system
+                DotExp dotExp = new DotExp(Mimic.mimicAddExp(new StaticAccessExp(new ReturnType.JavaClass("java/lang/System"), 
+                                                            "out", pstream)));
+                MethodInvokeDotter minv = new MethodInvokeDotter("printf", pstream, false);
+                minv.addDefParam(new SimpleFuncParamNode("formatString", JavaType.STRING));
+                minv.addDefParam(new VariableFuncParamNode("formats", JavaType.INTEGER));
+                dotExp.addDotter(minv);
+                ExpSummoner.summonDotExp(dotExp, mv, helper, table);
+            }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }
     }
 
-    public void summonDecl(Decl decl, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
+    private void summonDecl(Decl decl, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
         switch (decl) {
             case ConstDecl constDecl -> {
                 for (ConstDef constDef : constDecl.getConstDefs()) {
@@ -175,7 +196,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         }
     }
 
-    public void summonBlock(Block block, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
+    private void summonBlock(Block block, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
         table.pushContext();
         for (BlockItem blockItem : block.getBlockItems()) {
             switch(blockItem.getWrappedBlockItem()) {
@@ -196,12 +217,21 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         IdentEntry entry = table.addFuncDef(funcDef, Owner.builtinMain());
         FuncDefNode funcDefNode = ((FuncDefNode)entry.getDef());
         this.currentFunc = funcDefNode;
-        MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PRIVATE, funcDef.getIdent().getName(), null, null, null);
+        MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PRIVATE, funcDefNode.getName(), funcDefNode.getDescriptor(), null, null);
         table.pushContext();
         table.loadFunctionParams(entry.getName());
         MethodHelper helper = new MethodHelper(funcDefNode);
+        mv.visitCode();
         summonBlock(funcDef.getBlock(), mv, table, helper);
-        table.popContext();
+        switch (funcDefNode.getReturnType()) {
+            case ReturnType.Void() -> mv.visitInsn(RETURN);
+            case ReturnType.Integer() -> mv.visitInsn(IRETURN);
+            case ReturnType.JavaClass jc -> mv.visitInsn(ARETURN);
+        }
+        for (IdentEntry popEntry : table.popContext()) {
+            helper.releaseLocal(popEntry.getDef());
+        }
+        helper.visitMaxs(mv);
+        mv.visitEnd();
     }
-
 }

@@ -5,10 +5,12 @@ import java.util.List;
 
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DefNode;
+import com.cotoj.adaptor.FuncDefNode;
 import com.cotoj.adaptor.VarDefNode;
 
 public class IdentEntry {
     private final String name;
+    private final ReturnType type;
     private final DefNode def;
     private final int level;
     private IdentEntry last;
@@ -16,6 +18,7 @@ public class IdentEntry {
 
     public IdentEntry(DefNode def, int level) {
         this.name = def.getName();
+        this.type = def.getType();
         this.def = def;
         this.level = level;
         this.last = null;
@@ -24,6 +27,7 @@ public class IdentEntry {
 
     public IdentEntry(VarDefNode def, int level, int compileTimeValue) {
         this.name = def.getName();
+        this.type = def.getType();
         this.def = def;
         this.level = level;
         this.last = null;
@@ -33,10 +37,20 @@ public class IdentEntry {
 
     public IdentEntry(ArrayDefNode def, int level, List<Integer>compileTimeValues) {
         this.name = def.getName();
+        this.type = def.getType();
         this.def = def;
         this.level = level;
         this.last = null;
         this.compileTimeValue = new ArrayList<>(compileTimeValues);
+    }
+
+    public IdentEntry(FuncDefNode def, int level) {
+        this.name = def.getName();
+        this.type = null;
+        this.def = def;
+        this.level = level;
+        this.last = null;
+        this.compileTimeValue = null;
     }
 
     public void setLast(IdentEntry last) {
@@ -45,6 +59,10 @@ public class IdentEntry {
 
     public String getName() {
         return name;
+    }
+
+    public ReturnType getType() {
+        return type;
     }
 
     public int getLevel() {

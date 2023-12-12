@@ -9,10 +9,15 @@ import org.objectweb.asm.Opcodes;
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.ArrayFuncParamNode;
 import com.cotoj.adaptor.DefNode;
+import com.cotoj.adaptor.DotExp;
+import com.cotoj.adaptor.MethodInvokeDotter;
 import com.cotoj.adaptor.FuncDefNode;
 import com.cotoj.adaptor.FuncParamNode;
 import com.cotoj.adaptor.SimpleFuncParamNode;
+import com.cotoj.adaptor.StaticAccessExp;
 import com.cotoj.adaptor.VarDefNode;
+import com.cotoj.adaptor.VariableFuncParamNode;
+import com.cotoj.utils.AutoPacker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
@@ -32,6 +37,66 @@ public interface ExpSummoner extends Opcodes {
             return new TypePair(type, false);
         }
     };
+
+    private static void loadFuncParam(List<FuncParamNode> funcParams, List<Exp> callParams, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        int defParamIndex = 0;
+        int varParamIndex = 0;
+        for (Exp callParam : callParams) {
+            FuncParamNode defParam = funcParams.get(defParamIndex);
+            ReturnType paramType = switch (defParam) {
+                case SimpleFuncParamNode spara -> summonExp(callParam, mv, helper, table);
+                case ArrayFuncParamNode apara -> {
+                    ObjectClass arrayExp = callParam.getAddExp().getMulExp().getUnaryExp().getWrappedExp();
+                    if ((!(arrayExp instanceof PrimaryExp)) || (!(((PrimaryExp)arrayExp).getWrappedExp() instanceof LVal))) {
+                        throw new RuntimeException("So, where is my precious? My precious...");
+                    }
+                    Ident arrayIdent = ((LVal)((PrimaryExp)arrayExp).getWrappedExp()).getIdent();
+                    DefNode arrayDef = table.getEntry(arrayIdent.getName(), SymbolType.VARIABLE).getDef();
+                    if (!(arrayDef instanceof ArrayDefNode)) {
+                        throw new RuntimeException("You have to be an array!");
+                    }
+                    switch (arrayDef.getOwner()) {
+                        case Owner.Static sClass -> {mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), ((ArrayDefNode)arrayDef).getDescriptor());}
+                        case Owner.Local() -> {mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));}
+                        default -> throw new RuntimeException("No, an array must beheld!");
+                    }
+                    helper.reportUseOpStack(1, ((ArrayDefNode)arrayDef).getTypeString());
+                    yield arrayDef.getType();
+                }
+                case VariableFuncParamNode vParam -> {
+                    if (varParamIndex == 0) {
+                        mv.visitIntInsn(SIPUSH, callParams.size() - defParamIndex);
+                        mv.visitInsn(ANEWARRAY);
+                        helper.reportUseOpStack(1, "[" + vParam.getType().toTypeString());
+                    }
+                    helper.dup(mv);
+                    mv.visitLdcInsn(varParamIndex);
+                    helper.reportUseOpStack(1, "I");
+                    ReturnType type = summonExp(callParam, mv, helper, table);
+                    ++varParamIndex;
+                    --defParamIndex;
+                    yield type;
+                }
+            };
+            if (!paramType.getClass().equals(defParam.getType().getClass())) {
+                if (AutoPacker.isPacked(paramType, defParam.getType())) {
+                    AutoPacker.summonPack(paramType, mv, helper, table);
+                } else {
+                    throw new CError(ErrorType.TYPE_MISMATCH, "Expect " + paramType + ", found " + defParam.getType());
+                }
+            }
+            if (varParamIndex > 0) {
+                if (defParam.getType().isPrimitive()) {
+                    mv.visitInsn(IALOAD);
+                } else {
+                    mv.visitInsn(AALOAD);
+                }
+                helper.reportPopOpStack(3);
+            }
+            ++defParamIndex;
+        }
+    }
+
     private static ReturnType summonLVal(LVal lVal, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         Ident ident = lVal.getIdent();
         IdentEntry entry = table.getEntry(ident.getName(), SymbolType.fromString(ident.getKind()));
@@ -64,7 +129,7 @@ public interface ExpSummoner extends Opcodes {
                 }
                 helper.reportUseOpStack(1, arrayDef.getTypeString());
                 for (Exp index : indexes) {
-                    ExpSummoner.summonAddExp(index.getAddExp(), mv, helper, table);
+                    ExpSummoner.summonExp(index, mv, helper, table);
                 }
                 mv.visitInsn(IALOAD);
                 helper.reportPopOpStack(indexes.size() + 1);
@@ -77,13 +142,18 @@ public interface ExpSummoner extends Opcodes {
     
     private static ReturnType summonPrimaryExp(PrimaryExp primaryExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         return switch (primaryExp.getWrappedExp()) {
-            case Exp exp -> summonAddExp(exp.getAddExp(), mv, helper, table);
+            case Exp exp -> summonExp(exp, mv, helper, table);
             case LVal lval -> summonLVal(lval, mv, helper, table);
             case GNumber number -> {
                 mv.visitLdcInsn(number.getNumber());
                 // TODO
                 helper.reportUseOpStack(1, "I"); 
                 yield new ReturnType.Integer();
+            }
+            case StaticAccessExp sa -> {
+                mv.visitFieldInsn(GETSTATIC, sa.getClassType().toTypeString(), sa.getFieldName(), sa.getFieldType().toDescriptor());
+                helper.reportUseOpStack(1, sa.getFieldType().toTypeString());
+                yield sa.getFieldType();
             }
             default -> throw new RuntimeException(primaryExp.getWrappedExp().getClass() + " should not found in PrimaryExp");
         };
@@ -113,43 +183,17 @@ public interface ExpSummoner extends Opcodes {
                 }
                 FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
                 List<Exp> rparams = funcCall.getFuncRParams().getExps();
-                if (rparams.size() != funcDef.getParams().size()) {
-                    throw new CError(ErrorType.FUNC_PARAM_FAIL, "Expect " + funcDef.getParams().size() + ", got " + rparams.size());
-                }
-                for (int i = 0; i < rparams.size(); ++i) {
-                    FuncParamNode defParam = funcDef.getParams().get(i);
-                    ReturnType paramType = switch (defParam) {
-                        case SimpleFuncParamNode spara -> summonExp(rparams.get(i), mv, helper, table);
-                        case ArrayFuncParamNode apara -> {
-                            ObjectClass arrayExp = rparams.get(i).getAddExp().getMulExp().getUnaryExp().getWrappedExp();
-                            if ((!(arrayExp instanceof PrimaryExp)) || (!(((PrimaryExp)arrayExp).getWrappedExp() instanceof LVal))) {
-                                throw new RuntimeException("So, where is my precious? My precious...");
-                            }
-                            Ident arrayIdent = ((LVal)((PrimaryExp)arrayExp).getWrappedExp()).getIdent();
-                            DefNode arrayDef = table.getEntry(arrayIdent.getName(), SymbolType.VARIABLE).getDef();
-                            if (!(arrayDef instanceof ArrayDefNode)) {
-                                throw new RuntimeException("You have to be an array!");
-                            }
-                            switch (arrayDef.getOwner()) {
-                                case Owner.Static sClass -> {mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), ((ArrayDefNode)arrayDef).getDescriptor());}
-                                case Owner.Local() -> {mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));}
-                                default -> throw new RuntimeException("No, an array must beheld!");
-                            }
-                            helper.reportUseOpStack(1, ((ArrayDefNode)arrayDef).getTypeString());
-                            yield arrayDef.getType();
-                        }
-                        default -> throw new RuntimeException("What is this param? " + defParam);
-                    };
-                    if (!paramType.getClass().equals(defParam.getType().getClass())) {
-                        throw new CError(ErrorType.TYPE_MISMATCH, "Expect " + paramType + ", found " + defParam.getType());
-                    }
-                }
+                loadFuncParam(funcDef.getParams(), rparams, mv, helper, table);
                 switch (funcDef.getOwner()) {
                     case Owner.Static(String clazz, boolean isInt) -> {mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);}
                     default -> throw new RuntimeException("A function cannot be possessed by " + funcDef.getOwner());
                 }
-                helper.reportPopOpStack(rparams.size());
-                yield funcDef.getReturnType();
+                helper.reportPopOpStack(funcDef.getParams().size());
+                ReturnType retType = funcDef.getReturnType();
+                if (!(retType instanceof ReturnType.Void)) {
+                    helper.reportUseOpStack(1, retType.toTypeString());
+                }
+                yield retType;
             } 
             default -> throw new CError(ErrorType.EXP_PARSE_FAIL, unaryExp.getWrappedExp().getClass().toString());
         };
@@ -199,9 +243,32 @@ public interface ExpSummoner extends Opcodes {
         }
     }
 
+    public static ReturnType summonDotExp(DotExp dotExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        ReturnType curType = summonAddExp(dotExp.getAddExp(), mv, helper, table);
+        for (MethodInvokeDotter dotter : dotExp.getDotList()) {
+            loadFuncParam(dotter.getDefParams(), dotter.getCallParams(), mv, helper, table);
+            StringBuilder sb = new StringBuilder("(");
+            for (var defParam : dotter.getDefParams()) {
+                sb.append(defParam.getType().toDescriptor());
+            }
+            sb.append(')');
+            sb.append(dotter.getType().toDescriptor());
+            mv.visitMethodInsn(INVOKEVIRTUAL, curType.toTypeString(), dotter.getIdentName(), sb.toString(), dotter.isInterface());
+            curType = dotter.getType();
+            helper.reportPopOpStack(dotter.getDefParams().size() + 1);
+            helper.reportUseOpStack(1, curType.toDescriptor());
+        }
+        return curType;
+    }
+
     // Evaluate an Exp at Runtime.
     public static ReturnType summonExp(Exp exp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
-        return summonAddExp(exp.getAddExp(), mv, helper, table);
+        if (exp instanceof DotExp dotExp) {
+            return summonDotExp(dotExp, mv, helper, table);
+        }
+        else {
+            return summonAddExp(exp.getAddExp(), mv, helper, table);
+        }
     }
 
     private static ReturnType summonRelExp(RelExp relExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
