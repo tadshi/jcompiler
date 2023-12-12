@@ -4,13 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cotoj.utils.Owner;
+import com.cotoj.utils.ReturnType;
 
 public final class ArrayFuncParamNode extends FuncParamNode {
     private int dimLimit;
     private List<Integer> dimSizes;
 
-    public ArrayFuncParamNode(String name) {
-        super(name);
+    public ArrayFuncParamNode(String name, ReturnType type) {
+        super(name, type);
         this.dimLimit = 1;
         this.dimSizes = new ArrayList<>();
     }
@@ -30,7 +31,7 @@ public final class ArrayFuncParamNode extends FuncParamNode {
     }
 
     public ArrayDefNode toArrayDef() {
-        ArrayDefNode ret = new ArrayDefNode(getName(), new Owner.Local(), true);
+        ArrayDefNode ret = new ArrayDefNode(getName(), new Owner.Local(), getType(), true);
         ret.addDimension(0);
         for (int dim : dimSizes) {
             ret.addDimension(dim);

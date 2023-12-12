@@ -1,10 +1,11 @@
 package com.cotoj.adaptor;
 
 import com.cotoj.utils.Owner;
+import com.cotoj.utils.ReturnType;
 
 public final class SimpleFuncParamNode extends FuncParamNode {
-    public SimpleFuncParamNode(String name) {
-        super(name);
+    public SimpleFuncParamNode(String name, ReturnType type) {
+        super(name, type);
     }
 
     @Override
@@ -14,6 +15,6 @@ public final class SimpleFuncParamNode extends FuncParamNode {
 
     @Override
     public DefNode toDef() {
-        return new VarDefNode(getName(), new Owner.Local(), true);
+        return new VarDefNode(getName(), new Owner.Local(), getType(), true);
     }
 }

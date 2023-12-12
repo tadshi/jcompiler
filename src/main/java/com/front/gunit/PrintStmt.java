@@ -1,7 +1,7 @@
 package com.front.gunit;
 import java.util.ArrayList;
 
-public class PrintStmt extends Stmt{
+public class PrintStmt extends ObjectClass implements StmtTrait {
     String formaString;
     ArrayList<Exp> exps = new ArrayList<>();
     public void setFormatString(String formString){
