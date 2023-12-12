@@ -13,7 +13,7 @@ public class JavaBytecodeSummoner {
     public JavaBytecodeSummoner(Path logFolder) {
         symbolTable = new SymbolTable();
         try {
-            staticSummoner = new StaticSummoner(logFolder.resolve("Static").toFile());
+            staticSummoner = new StaticSummoner(logFolder.resolve("Static").toFile(), symbolTable);
             mainSummoner = new MainSummoner(logFolder.resolve("Main").toFile());
         } catch (FileNotFoundException exp) {
             System.err.println("Fail to create log files.");

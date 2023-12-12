@@ -8,39 +8,30 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.cotoj.adaptor.ArrayDefNode;
+import com.cotoj.adaptor.DotExp;
 import com.cotoj.adaptor.FuncDefNode;
+import com.cotoj.adaptor.Mimic;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
+import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
-import com.front.gunit.Block;
-import com.front.gunit.BlockItem;
-import com.front.gunit.Decl;
-import com.front.gunit.Exp;
-import com.front.gunit.ExpStmt;
-import com.front.gunit.ConstDecl;
-import com.front.gunit.ConstDef;
-import com.front.gunit.VarDecl;
-import com.front.gunit.VarDef;
-import com.front.gunit.WhileStmt;
-import com.front.gunit.FuncDef;
-import com.front.gunit.IfStmt;
-import com.front.gunit.LVal;
-import com.front.gunit.LValDecl;
-import com.front.gunit.Stmt;
+import com.front.gunit.*;
 
 public class MainSummoner extends ClassMaker implements Opcodes {
+    private FuncDefNode currentFunc = null;
+    
     public MainSummoner(File logFile) throws FileNotFoundException {
         super(logFile);
         cv.visit(V17, ACC_PUBLIC + ACC_INTERFACE + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
     }
 
-    public void summonStmt(Stmt stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
-        switch (stmt.getWrappedStmt()) {
+    public void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
+        switch (stmt) {
             case LValDecl assignStmt -> {
                 LVal lVal = assignStmt.getlVal();
                 IdentEntry entry = table.getEntry(lVal.getIdent().getName(), SymbolType.fromString(lVal.getIdent().getKind()));
@@ -48,7 +39,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     case VarDefNode varDef -> {
                         ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
                         switch (varDef.getOwner()) {
-                            case Owner.Static() -> mv.visitFieldInsn(PUTSTATIC, "com/oto/Static", varDef.getName(), varDef.getDescriptor());
+                            case Owner.Static sClass -> mv.visitFieldInsn(PUTSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
                             case Owner.Local() -> mv.visitIntInsn(ISTORE, helper.getVarIndex(varDef));
                             default -> throw new RuntimeException("We cannot recognize " + varDef.getOwner() + "in lval.");
                         }
@@ -59,7 +50,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                             throw new CError(ErrorType.ARRAY_DIM_ERROR, "Expect " + arrayDef.getDimSizes().size() + ", found " + lVal.getExps().size());
                         }
                         switch (arrayDef.getOwner()) {
-                            case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
+                            case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), arrayDef.getDescriptor());
                             case Owner.Local() -> mv.visitIntInsn(ALOAD, helper.getVarIndex(arrayDef));
                             default -> throw new RuntimeException("We cannot recognize " + arrayDef.getOwner() + "in lval.");
                         }
@@ -88,16 +79,14 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 // else nop?
             }
             case Block block -> {
-                table.pushContext();
                 summonBlock(block, mv, table, helper);
-                table.popContext();
             }
             case IfStmt ifStmt -> {
                 Label start = new Label();
                 Label else_stmt = new Label();
                 ExpSummoner.summonLOrExp(ifStmt.getCond().getlOrExp(), mv, helper, table, start);
                 mv.visitJumpInsn(IFEQ, else_stmt);
-                summonStmt(ifStmt.getStmt(), mv, table, helper);
+                summonStmt(ifStmt.getStmt().getWrappedStmt(), mv, table, helper);
                 if (ifStmt.getElseStmt() == null) {
                     mv.visitLabel(else_stmt);
                     helper.visitFrame(mv);
@@ -106,7 +95,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     mv.visitJumpInsn(GOTO, end);
                     mv.visitLabel(else_stmt);
                     helper.visitFrame(mv);
-                    summonStmt(ifStmt.getElseStmt(), mv, table, helper);
+                    summonStmt(ifStmt.getElseStmt().getWrappedStmt(), mv, table, helper);
                     mv.visitLabel(end);
                     helper.visitFrame(mv);
                 }
@@ -114,17 +103,58 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             case WhileStmt whileStmt -> {
                 Label start = new Label();
                 Label end = new Label();
-                ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, end);
-                mv.visitJumpInsn(IFEQ, end);
+
+                mv.visitInsn(NOP);
                 mv.visitLabel(start);
                 helper.visitFrame(mv);
-                summonStmt(whileStmt.getStmt(), mv, table, helper);
                 ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, end);
-                mv.visitJumpInsn(IFNE, start);
+                mv.visitJumpInsn(IFEQ, end);
+                //Summon loop
+                StmtTrait loopers = whileStmt.getStmt().getWrappedStmt();
+                table.pushContext();
+                table.registerLoop(start, end);
+                if (loopers instanceof Block block) {
+                    summonBlock(block, mv, table, helper);
+                } else {
+                    summonStmt(loopers, mv, table, helper);
+                }
+                for (IdentEntry entry : table.popContext()) {
+                    if (entry.getDef().getOwner() instanceof Owner.Local) {
+                        helper.releaseLocal(entry.getDef());
+                    }
+                }
+                mv.visitJumpInsn(GOTO, start);
                 mv.visitLabel(end);
                 helper.visitFrame(mv);
             }
-            default -> throw new RuntimeException("Cannot recognise " + stmt.getWrappedStmt().getClass() + " as a statement.");
+            case BreakStmt _stmt -> {
+                mv.visitJumpInsn(GOTO, table.getBreakLabel());
+                helper.visitFrame(mv);
+            }
+            case ContinueStmt _stmt -> {
+                mv.visitJumpInsn(GOTO, table.getContinueLabel());
+                helper.visitFrame(mv);
+            }
+            case ReturnStmt returnStmt -> {
+                if (returnStmt.getExp() != null) {
+                    ExpSummoner.summonExp(returnStmt.getExp(), mv, helper, table);
+                    mv.visitInsn(IRETURN);
+                    helper.visitFrame(mv);
+                } else {
+                    if (!(currentFunc.getReturnType() instanceof ReturnType.Void)) {
+                        throw new CError(ErrorType.WRONG_RETURN_TYPE, "This is a non-void function.");
+                    }
+                    mv.visitInsn(RETURN);
+                }
+                helper.visitFrame(mv);
+            }
+            case LValGetint getIntStmt -> {
+                LValDecl lValDecl = new LValDecl();
+                lValDecl.setLVal(getIntStmt.getlVal());
+                lValDecl.setExp(new DotExp(Mimic.mimicAddExp("__jScanner", new ReturnType.JavaClass("java/util/Scanner"))));
+                summonStmt(lValDecl, mv, table, helper);
+            }
+            default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }
     }
 
@@ -146,19 +176,26 @@ public class MainSummoner extends ClassMaker implements Opcodes {
     }
 
     public void summonBlock(Block block, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
+        table.pushContext();
         for (BlockItem blockItem : block.getBlockItems()) {
             switch(blockItem.getWrappedBlockItem()) {
                 case Decl decl -> summonDecl(decl, mv, table, helper);
-                case Stmt stmt -> summonStmt(stmt, mv, table, helper);
+                case Stmt stmt -> summonStmt(stmt.getWrappedStmt(), mv, table, helper);
                 default -> throw new RuntimeException("No, you cannot have " + blockItem.getWrappedBlockItem().getClass() +
                             " in your block.");
             };
         }
+        for (IdentEntry entry : table.popContext()) {
+            if (entry.getDef().getOwner() instanceof Owner.Local) {
+                helper.releaseLocal(entry.getDef());
+            }
+        }
     }
 
     public void summonFunc(FuncDef funcDef, SymbolTable table) {
-        IdentEntry entry = table.addFuncDef(funcDef);
+        IdentEntry entry = table.addFuncDef(funcDef, Owner.builtinMain());
         FuncDefNode funcDefNode = ((FuncDefNode)entry.getDef());
+        this.currentFunc = funcDefNode;
         MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PRIVATE, funcDef.getIdent().getName(), null, null, null);
         table.pushContext();
         table.loadFunctionParams(entry.getName());

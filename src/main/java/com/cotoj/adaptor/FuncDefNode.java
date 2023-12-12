@@ -10,7 +10,7 @@ public final class FuncDefNode extends DefNode {
     private List<FuncParamNode> params;
 
     public FuncDefNode(String name, Owner owner, ReturnType returnType) {
-        super(name, owner);
+        super(name, owner, null); // This is on purpose. Returntype may not be real Type...
         this.returnType = returnType;
     }
 
@@ -20,6 +20,12 @@ public final class FuncDefNode extends DefNode {
 
     public List<FuncParamNode> getParams() {
         return params;
+    }
+
+    @Deprecated
+    @Override
+    public ReturnType getType() {
+        throw new RuntimeException("No, you cannot call this.");
     }
 
     public ReturnType getReturnType() {
@@ -34,10 +40,7 @@ public final class FuncDefNode extends DefNode {
             sb.append(param.getDescriptor());
         }
         sb.append(')');
-        switch (returnType) {
-            case VOID -> sb.append('V');
-            case INTEGER -> sb.append('I');
-        }
+        sb.append(returnType.toDescriptor());
         return sb.toString();
     }
 }

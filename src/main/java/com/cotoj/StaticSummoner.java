@@ -12,6 +12,7 @@ import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
+import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
@@ -28,7 +29,7 @@ import com.front.gunit.VarDef;
 public class StaticSummoner extends ClassMaker implements Opcodes {
     MethodVisitor initVisitor;
     MethodHelper initHelper;
-    public StaticSummoner(File logFile) throws FileNotFoundException {
+    public StaticSummoner(File logFile, SymbolTable table) throws FileNotFoundException {
         super(logFile);
         cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Static", null, "java/lang/Object", null);
         initVisitor = cv.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
@@ -36,6 +37,15 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         initVisitor.visitVarInsn(ALOAD, 0);
         initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
         initHelper = new MethodHelper("com/oto/Static");
+
+        cv.visitField(ACC_PUBLIC + ACC_STATIC, "__jScanner", "Ljava/util/Scanner;", null, null);
+        initVisitor.visitTypeInsn(NEW, "java/util/Scanner");
+        initVisitor.visitInsn(DUP);
+        initVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        initVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/Scanner", "<init>", "(Ljava/io/PrintStream;)V", false);
+        initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", "__jScanner", "Ljava/util/Scanner;");
+        initHelper.reportUsedStack(3);
+        table.addDefNode(new VarDefNode("__jScanner", Owner.builtinStatic(), new ReturnType.JavaClass("java/util/Scanner"), false));
     }
 
     private void parseArrayInit(ArrayDefNode arrayDef, InitValList initList, int level, SymbolTable table) {
@@ -52,7 +62,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                     initVisitor.visitInsn(DUP);
                     initHelper.reportUseOpStack(1, arrayDef.getIndexedTypeString(level));
                     initVisitor.visitLdcInsn(i);
-                    initHelper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+                    initHelper.reportUseOpStack(1, "I");
                     ExpSummoner.summonExp(exp, initVisitor, initHelper, table);
                     initVisitor.visitInsn(IASTORE);
                     initHelper.reportPopOpStack(3);

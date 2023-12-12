@@ -9,4 +9,6 @@ public enum ErrorType {
     EXP_PARSE_FAIL,
     ARRAY_DIM_ERROR,
     FUNC_PARAM_FAIL,
+    WRONG_RETURN_TYPE,
+    TYPE_MISMATCH
 }

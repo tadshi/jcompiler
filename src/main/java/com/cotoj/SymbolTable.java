@@ -1,5 +1,6 @@
 package com.cotoj;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -48,7 +49,7 @@ public class SymbolTable {
         contLabelPairs = new Stack<>();
     }
 
-    private void popTable() {
+    private IdentEntry popTable() {
         IdentEntry entry = table.peek();
         if (entry.getLast() != null) {
             ident_table.put(entry.getName(), entry.getLast());
@@ -56,9 +57,10 @@ public class SymbolTable {
             ident_table.remove(entry.getName());
         }
         table.pop();
+        return entry;
     }
 
-    public void addEntry(IdentEntry entry) {
+    private void addEntry(IdentEntry entry) {
         table.push(entry);
         IdentEntry lastRecord = ident_table.get(entry.getName());
         entry.setLast(lastRecord);
@@ -77,18 +79,32 @@ public class SymbolTable {
     }
 
     public void pushContext() {
-        context.push(context.size());
+        context.push(table.size());
     }
 
-    public void popContext() {
+    public List<IdentEntry> popContext() {
+        List<IdentEntry> ret = new ArrayList<>();
         while (table.size() > context.peek()) {
-            popTable();
+            ret.add(popTable());
         }
         context.pop();
+        if (breakLabelPair != null && breakLabelPair.level > context.size()) {
+            breakLabelPair = null;
+        }
+        while (!contLabelPairs.isEmpty() && contLabelPairs.peek().level > context.size()) {
+            contLabelPairs.pop();
+        }
+        return ret;
     }
 
     public int getLevel() {
         return context.size();
+    }
+
+    public IdentEntry addDefNode(DefNode def) {
+        IdentEntry entry = new IdentEntry(def, getLevel());
+        addEntry(entry);
+        return entry;
     }
 
     public IdentEntry addVarDef(VarDef varDef) {
@@ -96,7 +112,8 @@ public class SymbolTable {
         DefNode def;
         if (ident.getDimension() > 0) {
             // This Logic is not true but we cannot get more info from AST.
-            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ? new Owner.Static() : new Owner.Local(), true);
+            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ? Owner.builtinStatic() : new Owner.Local(), 
+                                    ReturnType.fromIdent(ident), true);
             var dimList = varDef.getConstExpList();
             if (dimList.size() != ident.getDimension()) {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
@@ -106,11 +123,9 @@ public class SymbolTable {
             }
             def = arrayDef;
         } else {
-            def = new VarDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), true);
+            def = new VarDefNode(ident.getName(), getLevel() == 0 ?  Owner.builtinStatic() : new Owner.Local(), ReturnType.fromIdent(ident), true);
         }
-        IdentEntry entry = new IdentEntry(def, getLevel());
-        addEntry(entry);
-        return entry;
+        return addDefNode(def);
     }
 
     public IdentEntry addConstDef(ConstDef constDef) {
@@ -127,7 +142,8 @@ public class SymbolTable {
             if (!(initVal instanceof ConstInitValList)) {
                 throw new RuntimeException("Why you init a const array without a List?");
             }
-            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), false);
+            ArrayDefNode arrayDef = new ArrayDefNode(ident.getName(), getLevel() == 0 ? Owner.builtinStatic() : new Owner.Local(),
+                                    ReturnType.fromIdent(ident), false);
             var dimList = constDef.getConstExps();
             if (dimList.size() != ident.getDimension()) {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
@@ -144,22 +160,24 @@ public class SymbolTable {
             if (!(initVal instanceof ConstExp)) {
                 throw new RuntimeException("Why you init a const without a constExp?");
             }
-            VarDefNode varDef = new VarDefNode(ident.getName(), getLevel() == 0 ?  new Owner.Static() : new Owner.Local(), false);
+            VarDefNode varDef = new VarDefNode(ident.getName(), getLevel() == 0 ? Owner.builtinStatic() : new Owner.Local(), 
+                                ReturnType.fromIdent(ident), false);
             entry = new IdentEntry(varDef, getLevel(), ConstExpParser.parseConstExp((ConstExp)initVal, this));
         }
         addEntry(entry);
         return entry;
     }
 
-    public IdentEntry addFuncDef(FuncDef funcDef) {
+    public IdentEntry addFuncDef(FuncDef funcDef, Owner owner) {
         Ident ident = funcDef.getIdent();
-        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), new Owner.Main(), ReturnType.fromFuncType(funcDef.getFuncType()));
+        ReturnType identType = ReturnType.fromIdent(ident);
+        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()));
         for (FuncFParam funcFParam : funcDef.getFuncFParams().getFuncFParams()) {
             FuncParamNode paramNode = switch (funcFParam.getType()) {
-                case NONARRAY -> new SimpleFuncParamNode(funcFParam.getIdent().getName());
-                case ARRAY1D -> new ArrayFuncParamNode(funcFParam.getIdent().getName());
+                case NONARRAY -> new SimpleFuncParamNode(funcFParam.getIdent().getName(), identType);
+                case ARRAY1D -> new ArrayFuncParamNode(funcFParam.getIdent().getName(), identType);
                 case ARRAYMULTID -> {
-                    var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName());
+                    var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName(), identType);
                     for (ConstExp constExp : funcFParam.getConstExp()) {
                         marrParam.addDim(ConstExpParser.parseConstExp(constExp, this));
                     }
@@ -183,7 +201,19 @@ public class SymbolTable {
         }
     }
 
-    public void registerLoop() {
-        // TODO
+    public void registerLoop(Label loopHead, Label loopEnd) {
+        int level = getLevel();
+        if (breakLabelPair == null || breakLabelPair.level >= level) {
+            breakLabelPair = new LabelPair(loopEnd, level);
+        }
+        contLabelPairs.push(new LabelPair(loopHead, level));
+    }
+
+    public Label getBreakLabel() {
+        return breakLabelPair.label;
+    }
+
+    public Label getContinueLabel() {
+        return contLabelPairs.peek().label;
     }
 }

@@ -1,5 +1,5 @@
 package com.front.gunit;
-public class Stmt extends ObjectClass implements StmtTrait {
+public class Stmt extends ObjectClass {
     private StmtTrait wrappedStmt;
 
     public void setWrappedStmt(StmtTrait stmt){

@@ -10,10 +10,10 @@ import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.ArrayFuncParamNode;
 import com.cotoj.adaptor.DefNode;
 import com.cotoj.adaptor.FuncDefNode;
+import com.cotoj.adaptor.FuncParamNode;
 import com.cotoj.adaptor.SimpleFuncParamNode;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.IdentEntry;
-import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
@@ -23,7 +23,16 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.*;
 
 public interface ExpSummoner extends Opcodes {
-    private static void summonLVal(LVal lVal, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+    public record TypePair(ReturnType type, boolean used) {
+        // Let's go Rrrrrrust!
+        public static TypePair Yup(ReturnType type) {
+            return new TypePair(type, true);
+        }
+        public static TypePair Nop(ReturnType type) {
+            return new TypePair(type, false);
+        }
+    };
+    private static ReturnType summonLVal(LVal lVal, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         Ident ident = lVal.getIdent();
         IdentEntry entry = table.getEntry(ident.getName(), SymbolType.fromString(ident.getKind()));
         DefNode def = entry.getDef();
@@ -34,7 +43,7 @@ public interface ExpSummoner extends Opcodes {
                 } else {
                     Owner owner = varDef.getOwner();
                     switch (owner) {
-                        case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", varDef.getName(), varDef.getDescriptor());
+                        case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
                         case Owner.Local() -> mv.visitVarInsn(ILOAD, helper.getVarIndex(varDef));
                         default -> throw new RuntimeException("No, we cannot deal with" + owner);
                     }
@@ -49,7 +58,7 @@ public interface ExpSummoner extends Opcodes {
                 }
                 Owner owner = arrayDef.getOwner();
                 switch (owner) {
-                    case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
+                    case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), arrayDef.getDescriptor());
                     case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
                     default -> throw new RuntimeException("No, we cannot deal with" + owner);
                 }
@@ -59,38 +68,43 @@ public interface ExpSummoner extends Opcodes {
                 }
                 mv.visitInsn(IALOAD);
                 helper.reportPopOpStack(indexes.size() + 1);
-                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+                helper.reportUseOpStack(1, arrayDef.getTypeString());
             } 
             default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, def.getClass() + " should not be used as LVal.");
         }
+        return def.getType();
     }
     
-    private static void summonPrimaryExp(PrimaryExp primaryExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
-        switch (primaryExp.getWrappedExp()) {
+    private static ReturnType summonPrimaryExp(PrimaryExp primaryExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        return switch (primaryExp.getWrappedExp()) {
             case Exp exp -> summonAddExp(exp.getAddExp(), mv, helper, table);
             case LVal lval -> summonLVal(lval, mv, helper, table);
             case GNumber number -> {
                 mv.visitLdcInsn(number.getNumber());
-                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+                // TODO
+                helper.reportUseOpStack(1, "I"); 
+                yield new ReturnType.Integer();
             }
             default -> throw new RuntimeException(primaryExp.getWrappedExp().getClass() + " should not found in PrimaryExp");
-        }
+        };
     }
 
-    private static void summonUnaryExp(UnaryExp unaryExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
-        switch (unaryExp.getWrappedExp()) {
+    private static ReturnType summonUnaryExp(UnaryExp unaryExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        return switch (unaryExp.getWrappedExp()) {
             case PrimaryExp primaryExp -> summonPrimaryExp(primaryExp, mv, helper, table);
             case OpExp opExp -> {
-                switch (opExp.getUnaryOp().getOp()) {
+                ReturnType retType = switch (opExp.getUnaryOp().getOp()) {
                     case "PLUS +" -> summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
                     case "MINU -" -> {
-                        summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
+                        var type = summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
                         mv.visitInsn(INEG);
+                        yield type;
                     }
                     default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, opExp.getUnaryOp().getOp());
-                }
+                };
                 helper.reportPopOpStack(1);
-                helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+                helper.reportUseOpStack(1, retType.toTypeString());
+                yield retType;
             } 
             case FuncCall funcCall -> {
                 IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.fromString(funcCall.getIdent().getKind()));
@@ -98,16 +112,13 @@ public interface ExpSummoner extends Opcodes {
                     throw new CError(ErrorType.UNEXPECTED_TOKEN, entry.getName() + " is not a function!");
                 }
                 FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
-                if (funcDef.getOwner() instanceof Owner.ExVarLib(String varOwner, String varType, String varName, String methodName)) {
-                    mv.visitFieldInsn(GETSTATIC, varOwner, varName, JavaType.typeToDescriptor(varType));
-                    helper.reportUseOpStack(1, varType);
-                }
                 List<Exp> rparams = funcCall.getFuncRParams().getExps();
                 if (rparams.size() != funcDef.getParams().size()) {
                     throw new CError(ErrorType.FUNC_PARAM_FAIL, "Expect " + funcDef.getParams().size() + ", got " + rparams.size());
                 }
                 for (int i = 0; i < rparams.size(); ++i) {
-                    switch (funcDef.getParams().get(i)) {
+                    FuncParamNode defParam = funcDef.getParams().get(i);
+                    ReturnType paramType = switch (defParam) {
                         case SimpleFuncParamNode spara -> summonExp(rparams.get(i), mv, helper, table);
                         case ArrayFuncParamNode apara -> {
                             ObjectClass arrayExp = rparams.get(i).getAddExp().getMulExp().getUnaryExp().getWrappedExp();
@@ -120,36 +131,39 @@ public interface ExpSummoner extends Opcodes {
                                 throw new RuntimeException("You have to be an array!");
                             }
                             switch (arrayDef.getOwner()) {
-                                case Owner.Static() -> mv.visitFieldInsn(GETSTATIC, "com/oto/Static", arrayDef.getName(), ((ArrayDefNode)arrayDef).getTypeString());
-                                case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
+                                case Owner.Static sClass -> {mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), ((ArrayDefNode)arrayDef).getDescriptor());}
+                                case Owner.Local() -> {mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));}
                                 default -> throw new RuntimeException("No, an array must beheld!");
                             }
                             helper.reportUseOpStack(1, ((ArrayDefNode)arrayDef).getTypeString());
+                            yield arrayDef.getType();
                         }
-                        default -> throw new RuntimeException("What is this param? " + funcDef.getParams().get(i));
+                        default -> throw new RuntimeException("What is this param? " + defParam);
+                    };
+                    if (!paramType.getClass().equals(defParam.getType().getClass())) {
+                        throw new CError(ErrorType.TYPE_MISMATCH, "Expect " + paramType + ", found " + defParam.getType());
                     }
                 }
                 switch (funcDef.getOwner()) {
-                    case Owner.Main() -> mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", funcDef.getName(), funcDef.getDescriptor(), true);
-                    case Owner.ExVarLib exLib -> mv.visitMethodInsn(INVOKEVIRTUAL, exLib.getVarOwner(), 
-                                                                    exLib.methodName(), funcDef.getDescriptor(), false);
+                    case Owner.Static(String clazz, boolean isInt) -> {mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);}
                     default -> throw new RuntimeException("A function cannot be possessed by " + funcDef.getOwner());
                 }
                 helper.reportPopOpStack(rparams.size());
-                if (funcDef.getOwner() instanceof Owner.ExVarLib) {
-                    helper.reportPopOpStack(1);
-                }
+                yield funcDef.getReturnType();
             } 
             default -> throw new CError(ErrorType.EXP_PARSE_FAIL, unaryExp.getWrappedExp().getClass().toString());
-        }
+        };
     }
 
-    private static void summonMulExp(MulExp mulExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+    private static ReturnType summonMulExp(MulExp mulExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         if (mulExp.getMulExp() == null) {
-            summonUnaryExp(mulExp.getUnaryExp(), mv, helper, table);
+            return summonUnaryExp(mulExp.getUnaryExp(), mv, helper, table);
         } else {
-            summonMulExp(mulExp.getMulExp(), mv, helper, table);
-            summonUnaryExp(mulExp.getUnaryExp(), mv, helper, table);
+            ReturnType lType = summonMulExp(mulExp.getMulExp(), mv, helper, table);
+            ReturnType rType = summonUnaryExp(mulExp.getUnaryExp(), mv, helper, table);
+            if (!lType.getClass().equals(rType.getClass())) {
+                throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
+            }
             switch (mulExp.getCh()) {
                 case "MULT *" -> mv.visitInsn(IMUL);
                 case "DIV /" -> mv.visitInsn(IDIV);
@@ -157,45 +171,53 @@ public interface ExpSummoner extends Opcodes {
                 default -> throw new RuntimeException(mulExp.getCh());
             }
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+            helper.reportUseOpStack(1, lType.toTypeString());
+            return lType;
         }
     }
 
     // Well, if you do not deal with the complexity abide in the grammar, then
     // every single layer will suffer from the complexity.
     // This can be a good lesson...
-    private static void summonAddExp(AddExp addExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+    private static ReturnType summonAddExp(AddExp addExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         if (addExp.getAddExp() == null) {
-            summonMulExp(addExp.getMulExp(), mv, helper, table);
+            return summonMulExp(addExp.getMulExp(), mv, helper, table);
         } else {
-            summonAddExp(addExp.getAddExp(), mv, helper, table);
-            summonMulExp(addExp.getMulExp(), mv, helper, table);
+            ReturnType lType = summonAddExp(addExp.getAddExp(), mv, helper, table);
+            ReturnType rType = summonMulExp(addExp.getMulExp(), mv, helper, table);
+            if (!lType.getClass().equals(rType.getClass())) {
+                throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
+            }
             switch (addExp.getCh()) {
                 case "PLUS +" -> mv.visitInsn(IADD);
                 case "MINU -" -> mv.visitInsn(ISUB);
                 default -> throw new RuntimeException(addExp.getCh());
             }
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+            helper.reportUseOpStack(1, lType.toTypeString());
+            return lType;
         }
     }
 
     // Evaluate an Exp at Runtime.
-    public static void summonExp(Exp exp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
-        summonAddExp(exp.getAddExp(), mv, helper, table);
+    public static ReturnType summonExp(Exp exp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        return summonAddExp(exp.getAddExp(), mv, helper, table);
     }
 
-    private static void summonRelExp(RelExp relExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+    private static ReturnType summonRelExp(RelExp relExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         if (relExp.getRelExp() == null) {
-            summonAddExp(relExp.getAddExp(), mv, helper, table);
+            return summonAddExp(relExp.getAddExp(), mv, helper, table);
         } else {
             mv.visitInsn(ICONST_1);
             Label endLabel = new Label();
-            summonRelExp(relExp.getRelExp(), mv, helper, table);
-            summonAddExp(relExp.getAddExp(), mv, helper, table);
+            ReturnType lType = summonRelExp(relExp.getRelExp(), mv, helper, table);
+            ReturnType rType = summonAddExp(relExp.getAddExp(), mv, helper, table);
             helper.visitFrame(mv);
             // Yes we can calculate those without branch
             // but at 7-8 instructions' cost so
+            if (!lType.getClass().equals(rType.getClass())) {
+                throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
+            }
             switch(relExp.getCh()) {
                 case ">=" -> mv.visitJumpInsn(IF_ICMPGE, endLabel);
                 case "<=" -> mv.visitJumpInsn(IF_ICMPLE, endLabel);
@@ -207,16 +229,19 @@ public interface ExpSummoner extends Opcodes {
             mv.visitInsn(ICONST_0);
             mv.visitLabel(endLabel);
             helper.visitFrame(mv);
-            mv.visitInsn(NOP); // In case two visitFrame run into each other
+            return new ReturnType.Integer();
         }
     }
 
-    private static void summonEqxp(EqExp eqExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+    private static ReturnType summonEqxp(EqExp eqExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         if (eqExp.getEqExp() == null) {
-            summonRelExp(eqExp.getRelExp(), mv, helper, table);
+            return summonRelExp(eqExp.getRelExp(), mv, helper, table);
         } else {
-            summonEqxp(eqExp.getEqExp(), mv, helper, table);
-            summonRelExp(eqExp.getRelExp(), mv, helper, table);
+            ReturnType lType = summonEqxp(eqExp.getEqExp(), mv, helper, table);
+            ReturnType rType = summonRelExp(eqExp.getRelExp(), mv, helper, table);
+            if (!lType.getClass().equals(rType.getClass())) {
+                throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
+            }
             mv.visitInsn(IXOR);
             switch(eqExp.getCh()) {
                 case "==" -> {
@@ -228,42 +253,40 @@ public interface ExpSummoner extends Opcodes {
                 default -> throw new RuntimeException("Not sure what is " + eqExp.getCh());
             }
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1, ReturnType.INTEGER.toTypeString());
+            helper.reportUseOpStack(1, "I");
+            return new ReturnType.Integer();
         }
     }
 
-    private static boolean summonLAndExp(LAndExp lAndExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
+    private static TypePair summonLAndExp(LAndExp lAndExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
         if (lAndExp.getlAndExp() == null) {
-            summonEqxp(lAndExp.getEqExp(), mv, helper, table);
-            return false;
+            return TypePair.Nop(summonEqxp(lAndExp.getEqExp(), mv, helper, table));
         } else {
             Label midPoint = new Label();
-            boolean used = summonLAndExp(lAndExp.getlAndExp(), mv, helper, table, skipPoint);
-            if (used) {
+            TypePair pair = summonLAndExp(lAndExp.getlAndExp(), mv, helper, table, skipPoint);
+            if (pair.used) {
                 helper.visitFrame(mv);
                 mv.visitLabel(midPoint);
             }
             helper.dup(mv);
             mv.visitJumpInsn(IFEQ, midPoint);
-            summonEqxp(lAndExp.getEqExp(), mv, helper, table);
-            return true;
+            return TypePair.Yup(summonEqxp(lAndExp.getEqExp(), mv, helper, table));
         }
     }
 
-    public static boolean summonLOrExp(LOrExp lOrExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
+    public static TypePair summonLOrExp(LOrExp lOrExp, MethodVisitor mv, MethodHelper helper, SymbolTable table, Label skipPoint) {
         if (lOrExp.getlOrExp() == null) {
             return summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint);
         } else {
             Label midPoint = new Label();
-            boolean used = summonLOrExp(lOrExp.getlOrExp(), mv, helper, table, midPoint);
-            if (used) {
+            TypePair pair = summonLOrExp(lOrExp.getlOrExp(), mv, helper, table, midPoint);
+            if (pair.used) {
                 helper.visitFrame(mv);
                 mv.visitLabel(midPoint);
             }
             helper.dup(mv);
             mv.visitJumpInsn(IFNE, skipPoint);
-            summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint);
-            return true;
+            return TypePair.Yup(summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint).type);
         }
     }
 }
