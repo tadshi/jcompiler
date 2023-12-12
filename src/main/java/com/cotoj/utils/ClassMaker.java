@@ -2,7 +2,11 @@ package com.cotoj.utils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -22,5 +26,12 @@ public abstract class ClassMaker {
 
     public void masterUp() {
         cv.visitEnd();
+    }
+
+    public void save(Path path) throws IOException {
+        File outFile = path.toFile();
+        OutputStream jout = new FileOutputStream(outFile);
+        jout.write(classWriter.toByteArray());
+        jout.close();
     }
 }

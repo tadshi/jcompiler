@@ -2,20 +2,23 @@ package com.cotoj.adaptor;
 
 import com.cotoj.utils.ReturnType;
 import com.front.gunit.AddExp;
+import com.front.gunit.FuncDef;
+import com.front.gunit.FuncFParam;
+import com.front.gunit.FuncFParams;
+import com.front.gunit.FuncType;
 import com.front.gunit.Ident;
 import com.front.gunit.LVal;
+import com.front.gunit.MainFuncDef;
 import com.front.gunit.MulExp;
+import com.front.gunit.ObjectClass;
 import com.front.gunit.PrimaryExp;
 import com.front.gunit.UnaryExp;
+import com.front.gunit.FuncFParam.FuncParamType;
 
 public interface Mimic {
-    public static AddExp mimicAddExp(String identName, ReturnType type) {
-        Ident ident = new Ident("VAR", type.toTypeString());
-        ident.setIdent(identName, -1);
-        LVal lval = new LVal();
-        lval.setIdent(ident);
+    private static AddExp mimicFromPrimaryExp(ObjectClass exp) {
         PrimaryExp pExp = new PrimaryExp();
-        pExp.setWrappedExp(lval);
+        pExp.setWrappedExp(exp);
         UnaryExp uExp = new UnaryExp();
         uExp.setWrappedExp(pExp);
         MulExp mExp = new MulExp();
@@ -23,5 +26,38 @@ public interface Mimic {
         AddExp aExp = new AddExp();
         aExp.setMulExp(mExp);
         return aExp;
+        
+    }
+
+    public static AddExp mimicAddExp(String identName, ReturnType type) {
+        Ident ident = new Ident("VAR", type.toTypeString());
+        ident.setIdent(identName, -1);
+        LVal lval = new LVal();
+        lval.setIdent(ident);
+        return mimicFromPrimaryExp(lval);
+    }
+
+    public static AddExp mimicAddExp(StaticAccessExp sa) {
+        return mimicFromPrimaryExp(sa);
+    }
+
+    public static FuncDef mimicFuncDef(MainFuncDef mainFuncDef) {
+        FuncDef ret = new FuncDef();
+        ret.setBlock(mainFuncDef.getBlock());
+        FuncFParams params = new FuncFParams();
+        FuncFParam param = new FuncFParam();
+        Ident args = new Ident("VAR", "String");
+        args.setIdent("args", -1);
+        param.setIdent(args);
+        param.setType(FuncParamType.ARRAY1D);
+        params.addFuncFParam(param);
+        ret.setFuncFParams(params);
+        FuncType voidType = new FuncType();
+        voidType.setName("VOIDTK");
+        ret.setFuncType(voidType);
+        Ident funcIdent = new Ident();
+        funcIdent.setIdent("main", -1);
+        ret.setIdent(funcIdent);
+        return ret;
     }
 }

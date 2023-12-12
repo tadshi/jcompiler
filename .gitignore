@@ -2,3 +2,6 @@ target/
 *.zip
 *.class
 *.dump
+src/main/java/com/cotoj/Main.java
+test/
+.vscode/

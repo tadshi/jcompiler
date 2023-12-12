@@ -4,12 +4,14 @@ import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 
 public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNode {
-    private String name;
-    private Owner owner;
-    private ReturnType type;
+    private final String name;
+    private final Owner owner;
+    private final ReturnType type;
 
     public DefNode (String name, Owner owner, ReturnType type) {
         this.name = name;
+        this.owner = owner;
+        this.type = type;
     }
 
     public String getName() {

@@ -10,10 +10,16 @@ public sealed interface ReturnType {
         public String toTypeString() {
             return "V";
         }
+        public boolean isPrimitive() {
+            return true;
+        }
     };
     public final record Integer() implements ReturnType {
         public String toTypeString() {
             return "I";
+        }
+        public boolean isPrimitive() {
+            return true;
         }
     };
     public final record JavaClass(String typeString) implements ReturnType {
@@ -23,9 +29,17 @@ public sealed interface ReturnType {
         public String toDescriptor() {
             return "L" + typeString + ";";
         }
+        public boolean isPrimitive() {
+            return false;
+        }
+        public boolean equals(Object obj) {
+            return obj instanceof JavaClass && typeString.equals(((JavaClass)obj).typeString());
+        }
     }
 
     public abstract String toTypeString();
+
+    public boolean isPrimitive();
 
     public default String toDescriptor() {
         return toTypeString();

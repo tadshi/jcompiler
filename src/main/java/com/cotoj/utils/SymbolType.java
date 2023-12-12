@@ -14,6 +14,9 @@ public enum SymbolType {
     LABEL; // Unused
 
     public static SymbolType fromString(String string) {
+        if (string == null) {
+            return VARIABLE;
+        }
         return switch (string) {
             case "PROC" -> FUNCTION;
             case "VAR" -> VARIABLE;

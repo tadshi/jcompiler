@@ -9,11 +9,6 @@ public final class SimpleFuncParamNode extends FuncParamNode {
     }
 
     @Override
-    public String getDescriptor() {
-        return "I";
-    }
-
-    @Override
     public DefNode toDef() {
         return new VarDefNode(getName(), new Owner.Local(), getType(), true);
     }

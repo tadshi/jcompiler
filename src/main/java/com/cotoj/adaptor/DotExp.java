@@ -8,18 +8,18 @@ import com.front.gunit.Exp;
 
 // Only Right Value!
 public class DotExp extends Exp {
-    private final List<Dotter> dotList;
+    private final List<MethodInvokeDotter> dotList;
 
     public DotExp(AddExp exp) {
         setAddExp(exp);
         this.dotList = new ArrayList<>();
     }
 
-    public void addDotter(Dotter dotter) {
+    public void addDotter(MethodInvokeDotter dotter) {
         dotList.add(dotter);
     }
     
-    public List<Dotter> getDotList() {
+    public List<MethodInvokeDotter> getDotList() {
         return dotList;
     }
 }
