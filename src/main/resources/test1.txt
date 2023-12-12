@@ -1,67 +1,13 @@
-int fun3(int a, int b)
-{
-    if (a > b)
-    {
-        return a;
-    }
-    else
-    {
-        return b;
-    }
-    return a;
+int shared x;
+thread void func3(){
+    printf("123");
 }
-
-int gcd(int a, int b)
-{
-    if (a % b == 0)
-    {
-        return b;
-    }
-    return gcd(b, a % b);
-}
-
-int lcm(int a, int b)
-{
-    int gcds = gcd(a, b);
-    return a * b / gcds;
-}
-
-void fun4(int a, int b, int c)
-{
-    int d = (a + b - c) * a;
-    printf("%d\n", d);
-}
-
-int fun5(int a)
-{
-    if (a == 1)
-    {
-        return 1;
-    }
-    else
-    {
-        return 1;
-    }
-    return fun5(a - 1) + fun5(a - 2);
-}
-
 int main()
 {
-    fun1();
-    fun2(6);
-    printf("%d\n", fun3(2, fun3(3, 6)));
-    int a, b;
-    printf("scanf a, b to get gcd and lcm\n");
-    a = getint();
-    b = getint();
-    printf("gcd is %d\n", gcd(a, b));
-    printf("lcm is %d\n", lcm(a, b));
-    int temp;
-    temp = getint();
-    fun4(temp, 3, 10);
-    printf("scanf a to get Fibonacci\n");
-    int fib;
-    fib = getint();
-    printf("fib is %d\n", fun5(fib));
+    run func3;
+
+    lock x;
+    unlock x;
+
     return 0;
 }

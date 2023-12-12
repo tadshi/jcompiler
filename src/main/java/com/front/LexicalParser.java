@@ -197,6 +197,11 @@ public class LexicalParser {
         if (str.equals("printf")) return "PRINTFTK";
         if (str.equals("return")) return "RETURNTK";
         if (str.equals("void")) return "VOIDTK";
+        if (str.equals("thread")) return "THREADTK";
+        if (str.equals("run")) return "RUNTK";
+        if (str.equals("shared")) return "SHAREDTK";
+        if (str.equals("lock")) return "LOCKTK";
+        if (str.equals("unlock")) return "UNLOCKTK";
         return "";
     }
     

@@ -1,5 +1,6 @@
 package com.front.gunit;
 public class Ident extends ObjectClass{
+    int shared = 0;
     String kind;
     String type;
     String name;
@@ -14,6 +15,8 @@ public class Ident extends ObjectClass{
         this.kind = kind;
         this.type = type;
     }
+
+    public void setShared(){ this.shared = 1;}
 
     public void setIdent(String name, int line){
         this.name = name;
@@ -43,4 +46,6 @@ public class Ident extends ObjectClass{
     public String getType() {
         return type;
     }
+
+    public int getShare() {return shared;}
 }

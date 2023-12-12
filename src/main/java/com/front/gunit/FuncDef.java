@@ -1,11 +1,12 @@
 package com.front.gunit;
 public class FuncDef extends ObjectClass{
+    private int isThread = 0;
     private FuncType funcType;
     private Ident ident;
     private FuncFParams funcFParams;
     private Block block;
 
-
+    public void setIsThread(){this.isThread = 1;}
     public void setFuncType(FuncType funcType){
         this.funcType = funcType;
     }
@@ -22,7 +23,7 @@ public class FuncDef extends ObjectClass{
         this.block = block;
     }
 
-
+    public int getIsThread(){ return isThread;}
     public Block getBlock() {
         return block;
     }

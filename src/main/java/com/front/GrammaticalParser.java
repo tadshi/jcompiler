@@ -11,6 +11,8 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.*;
 import com.front.gunit.FuncFParam.FuncParamType;
 
+import javax.xml.stream.FactoryConfigurationError;
+
 public class GrammaticalParser {
     CompUnit root;
     int treeId = 0;
@@ -48,7 +50,7 @@ public class GrammaticalParser {
                         ret.addDecl(decl);
                     }
                 }
-                case "VOIDTK" -> {
+                case "VOIDTK", "THREADTK" -> {
                     label = 1;
                     grammarId--;
                     FuncDef funcDef = parseFuncDef();
@@ -79,6 +81,10 @@ public class GrammaticalParser {
                                 ret.addDecl(decl);
                             }
                         }
+                    } else if (type2.equals("SHAREDTK")){
+                        grammarId -= 2;
+                        Decl decl = parseDecl();
+                        ret.addDecl(decl);
                     }
                 }
             }
@@ -111,11 +117,15 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
+    //FuncDef → ['thread'] FuncType Ident '(' [FuncFParams] ')' Block
     FuncDef parseFuncDef(){
         FuncDef ret = new FuncDef();
         Ident ident = new Ident("PROC", wordMap.get(grammarId+1).content);
         grammarId++;
+        if (wordMap.get(grammarId).type.equals("THREADTK")){
+            ret.setIsThread();
+            grammarId++;
+        }
         FuncType funcType = parseFuncType();
         ret.setFuncType(funcType);
         grammarId++;
@@ -307,6 +317,69 @@ public class GrammaticalParser {
                 }
                 id2Object.put(treeId++, printStmt);
                 ret.setWrappedStmt(printStmt);
+            }
+            case "RUNTK" -> {
+                CallThreadStmt callThreadStmt = new CallThreadStmt();
+                grammarId++;
+                if (wordMap.get(grammarId).type.equals("IDENFR")){
+                    Ident ident = new Ident();
+                    //必须是thread类型的函数名
+                    ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+                    callThreadStmt.setIdent(ident);
+                    id2Object.put(treeId++, ident);
+                }else{
+                    grammarId--;
+                    //error
+                }
+                grammarId++;
+                if (!wordMap.get(grammarId).type.equals("SEMICN")) {
+                    grammarId--;
+                    //error
+                }
+                id2Object.put(treeId++, callThreadStmt);
+                ret.setWrappedStmt(callThreadStmt);
+            }
+            case "LOCKTK" -> {
+                LockStmt lockStmt = new LockStmt();
+                grammarId++;
+                if (wordMap.get(grammarId).type.equals("IDENFR")){
+                    Ident ident = new Ident();
+                    //必须是thread类型的函数名
+                    ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+                    lockStmt.setIdent(ident);
+                    id2Object.put(treeId++, ident);
+                }else{
+                    grammarId--;
+                    //error
+                }
+                grammarId++;
+                if (!wordMap.get(grammarId).type.equals("SEMICN")) {
+                    grammarId--;
+                    //error
+                }
+                id2Object.put(treeId++, lockStmt);
+                ret.setWrappedStmt(lockStmt);
+            }
+            case "UNLOCKTK" -> {
+                UnlockStmt unlockStmt = new UnlockStmt();
+                grammarId++;
+                if (wordMap.get(grammarId).type.equals("IDENFR")){
+                    Ident ident = new Ident();
+                    //必须是thread类型的函数名
+                    ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+                    unlockStmt.setIdent(ident);
+                    id2Object.put(treeId++, ident);
+                }else{
+                    grammarId--;
+                    //error
+                }
+                grammarId++;
+                if (!wordMap.get(grammarId).type.equals("SEMICN")) {
+                    grammarId--;
+                    //error
+                }
+                id2Object.put(treeId++, unlockStmt);
+                ret.setWrappedStmt(unlockStmt);
             }
             case "IDENFR" -> {
                 grammarId--;
@@ -696,8 +769,14 @@ public class GrammaticalParser {
         Ident ident = new Ident("VAR","INT");
         grammarId++;
 
+        boolean sharedFlag = false;
+        if (wordMap.get(grammarId).type.equals("SHAREDTK")){
+            sharedFlag = true;
+            grammarId++;
+        }
         LexicalParser.Word word = wordMap.get(grammarId);
         if (word.type.equals("IDENFR")) {
+            if (sharedFlag) ident.setShared();
             ident.setIdent(word.content, word.line);
             grammarId++;
             int count = 0;
