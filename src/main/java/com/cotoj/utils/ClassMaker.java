@@ -18,9 +18,9 @@ public abstract class ClassMaker {
     protected CheckClassAdapter cv;
     
     public ClassMaker(File logFile) throws FileNotFoundException {
-        PrintWriter writer = new PrintWriter(logFile);
+        PrintWriter logWriter = new PrintWriter(logFile);
         classWriter = new ClassWriter(0);
-        tcv = new TraceClassVisitor(writer);
+        tcv = new TraceClassVisitor(classWriter, logWriter);
         cv = new CheckClassAdapter(tcv);
     }
 
@@ -32,6 +32,7 @@ public abstract class ClassMaker {
         File outFile = path.toFile();
         OutputStream jout = new FileOutputStream(outFile);
         jout.write(classWriter.toByteArray());
+        jout.flush();
         jout.close();
     }
 }

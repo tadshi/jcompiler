@@ -8,14 +8,14 @@ import com.front.gunit.Exp;
 
 public final class MethodInvokeDotter {
     private final String identName;
-    private final ReturnType type;
+    private final ReturnType returnType;
     private List<FuncParamNode> defParams;
     private List<Exp> callParams;
     boolean isInterface;
 
-    public MethodInvokeDotter(String identName, ReturnType type, boolean isInterface) {
+    public MethodInvokeDotter(String identName, ReturnType returnType, boolean isInterface) {
         this.identName = identName;
-        this.type = type;
+        this.returnType = returnType;
         this.isInterface = isInterface;
         this.defParams = new ArrayList<>();
         this.callParams = new ArrayList<>();
@@ -44,7 +44,7 @@ public final class MethodInvokeDotter {
         return identName;
     }
 
-    public ReturnType getType() {
-        return type;
+    public ReturnType getReturnType() {
+        return returnType;
     }
 }

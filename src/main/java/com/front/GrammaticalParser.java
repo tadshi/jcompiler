@@ -223,11 +223,9 @@ public class GrammaticalParser {
                     ifStmt.setStmt(stmt);
                     grammarId++;
                     if (wordMap.get(grammarId).type.equals("ELSETK")) {
-                        ElseStmt elseStmt = new ElseStmt();
                         stmt = parseStmt();
-                        elseStmt.setStmt(stmt);
-                        ifStmt.setElseStmt(elseStmt);
-                        id2Object.put(treeId++, elseStmt);
+                        ifStmt.setElseStmt(stmt);
+                        id2Object.put(treeId++, stmt);
                     } else {
                         grammarId--;
                     }
@@ -1167,7 +1165,8 @@ public class GrammaticalParser {
                         //error
                     }
                 } else {
-
+                    FuncRParams funcRParams = new FuncRParams();
+                    funcCall.setFuncRParams(funcRParams);
                 }
                 id2Object.put(treeId++, funcCall);
                 ret.setWrappedExp(funcCall);

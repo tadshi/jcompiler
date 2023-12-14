@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -17,15 +18,18 @@ import com.cotoj.adaptor.VarDefNode;
 
 public class MethodHelper {
     private int maxOperandStack;
-    private Stack<String> operandStack;
+    private Stack<Object> operandStack;
     private int maxLocal;
     private final boolean isStatic;
     private final String thisType;
     private Map<DefNode, Integer> localMap;
     private Stack<DefNode> localStack;
     private int localShift;
-    private List<String> appendLocals;
+    private List<Object> appendLocals;
     private boolean localCorrcupted;
+    
+    private Label endLabel = new Label();
+    private boolean midReturned = false;
 
     // Only for constructor!
     public MethodHelper(String constructedClassTypeString) {
@@ -63,7 +67,7 @@ public class MethodHelper {
     
     public void reportUseOpStack(int size, String type) {
         for (int i = 0; i < size; ++i) {
-            operandStack.push(type);
+            operandStack.push(convertToASM(type));
         }
         if (maxOperandStack < operandStack.size()) {
             maxOperandStack = operandStack.size();
@@ -94,17 +98,17 @@ public class MethodHelper {
                 localCorrcupted = true;
             } else {
                 localShift++;
-                appendLocals.add(switch (def) {
+                appendLocals.add(convertToASM(switch (def) {
                     case VarDefNode varDef -> varDef.getDescriptor();
                     case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
                     case FuncDefNode funcDef -> throw new RuntimeException("Why you put a function in the stack?");
-                });
+                }));
             }
         }
     }
 
     public void releaseLocal(DefNode def) {
-        if (def != localStack.peek()) {
+        if (!(def.equals(localStack.peek()))) {
             throw new RuntimeException("Cannot pop non-top local!");
         }
         if (localStack.size() == 1 && isStatic) {
@@ -134,7 +138,10 @@ public class MethodHelper {
     }
 
     public void dup(MethodVisitor mv) {
-        reportUseOpStack(1, operandStack.peek());
+        operandStack.push(operandStack.peek());
+        if (maxOperandStack < operandStack.size()) {
+            maxOperandStack = operandStack.size();
+        }
         mv.visitInsn(Opcodes.DUP);
     }
 
@@ -147,32 +154,58 @@ public class MethodHelper {
             case VarDefNode varDef -> varDef.getDescriptor();
             case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
             case FuncDefNode funcDef -> throw new RuntimeException("Why there is a function in the stack?");
-        }).toArray();
+        }).map(desc -> convertToASM(desc)).toArray();
         mv.visitFrame(Opcodes.F_FULL, localMap.size(), localObjects, operandStack.size(), operandStack.toArray());
     }
 
+    private Object convertToASM(String descString) {
+        return switch (descString) {
+            case "I" -> Opcodes.INTEGER;
+            default -> descString;
+        };
+    }
+
     public void visitFrame(MethodVisitor mv) {
-        if (localCorrcupted) {
-            visitFullFrame(mv);
-        } else if (operandStack.size() == 0) {
-            if (localShift == 0) {
-                mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-            } else if (localShift > 0 && localShift <= 3) {
-                mv.visitFrame(Opcodes.F_APPEND, localShift, appendLocals.toArray(), 0, null);
-            } else if (localShift < 0 && localShift >= -3) {
-                mv.visitFrame(Opcodes.F_CHOP, -localShift, null, 0, null);
+        try {
+            if (localCorrcupted) {
+                visitFullFrame(mv);
+            } else if (operandStack.size() == 0) {
+                if (localShift == 0) {
+                    mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+                } else if (localShift > 0 && localShift <= 3) {
+                    mv.visitFrame(Opcodes.F_APPEND, localShift, appendLocals.toArray(), 0, null);
+                } else if (localShift < 0 && localShift >= -3) {
+                    mv.visitFrame(Opcodes.F_CHOP, -localShift, null, 0, null);
+                } else {
+                    visitFullFrame(mv);
+                }
+            } else if (operandStack.size() == 1 && localShift == 0) {
+                mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, operandStack.toArray());
             } else {
                 visitFullFrame(mv);
             }
-        } else if (operandStack.size() == 1 && localShift == 0) {
-            mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, operandStack.toArray());
-        } else {
-            visitFullFrame(mv);
+            localShift = 0;
+            localCorrcupted = false;
+            appendLocals.clear();
+        } catch (IllegalStateException err) {
+            if (!("At most one frame can be visited at a given code location.".equals(err.getMessage()))) {
+                throw err;
+            }
         }
-        localShift = 0;
-        localCorrcupted = false;
-        appendLocals.clear();
     }
 
-    
+    public void reportReturn() {
+        midReturned = true;
+    }
+
+    public Label getEndLabel() {
+        return endLabel;
+    }
+
+    public void makeReturnLabel(MethodVisitor mv) {
+        if (midReturned) {
+            visitFrame(mv);
+            mv.visitLabel(endLabel);
+        }
+    }
 }

@@ -19,7 +19,6 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.ConstDef;
 import com.front.gunit.Exp;
 import com.front.gunit.InitVal;
-import com.front.gunit.InitValList;
 import com.front.gunit.VarDef;
 
 /**
@@ -45,40 +44,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         initVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Scanner", "<init>", "(Ljava/io/PrintStream;)V", false);
         initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", "__jScanner", "Ljava/util/Scanner;");
         initHelper.reportUsedStack(3);
-        table.addDefNode(new VarDefNode("__jScanner", Owner.builtinStatic(), new ReturnType.JavaClass("java/util/Scanner"), false));
-    }
-
-    private void parseArrayInit(ArrayDefNode arrayDef, InitValList initList, int level, SymbolTable table) {
-        int maxDim = arrayDef.getDimSizes().get(level);
-        if (initList.getInitVals().size() > maxDim) {
-            throw new CError(ErrorType.UNEXPECTED_TOKEN, "TOO MUCH initvalues");
-        }
-        for (int i = 0; i < initList.getInitVals().size(); ++i) {
-            switch (initList.getInitVals().get(i).getInitForm()) {
-                case Exp exp -> {
-                    if (level != arrayDef.getDimSizes().size()) {
-                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "There should be more levels.");
-                    }
-                    initHelper.dup(initVisitor);
-                    initVisitor.visitLdcInsn(i);
-                    initHelper.reportUseOpStack(1, "I");
-                    ExpSummoner.summonExp(exp, initVisitor, initHelper, table);
-                    initVisitor.visitInsn(IASTORE);
-                    initHelper.reportPopOpStack(3);
-                }
-                case InitValList subInitList -> {
-                    initVisitor.visitInsn(DUP);
-                    initVisitor.visitLdcInsn(i);
-                    initVisitor.visitInsn(AALOAD);
-                    initHelper.reportUsedStack(2);
-                    initHelper.reportUseOpStack(1, arrayDef.getIndexedTypeString(level + 1));
-                    parseArrayInit(arrayDef, subInitList, level, table);
-                    initVisitor.visitInsn(POP);
-                    initHelper.reportPopOpStack(1);
-                }
-                default -> throw new RuntimeException("Failed in parsing arr init.");
-            }
-        }
+        table.addDefNode(new VarDefNode("__jScanner", Owner.builtinStatic(), new ReturnType.JavaClass("java/util/Scanner"), false), false);
     }
 
     public void parseStaticDef(VarDef varDef, SymbolTable table) {
@@ -87,20 +53,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         switch (def) {
             case ArrayDefNode arrayDef -> {
                 cv.visitField(ACC_PUBLIC + ACC_STATIC, entry.getName(), arrayDef.getDescriptor(), null, null).visitEnd();
-                for (int dimSize : arrayDef.getDimSizes()) {
-                    initVisitor.visitIntInsn(SIPUSH, dimSize);
-                }
-                initHelper.reportUsedStack(arrayDef.getDimSizes().size());
-                initVisitor.visitMultiANewArrayInsn(arrayDef.getDescriptor(), arrayDef.getDimSizes().size());
-                initHelper.reportUseOpStack(1, arrayDef.getTypeString());
-                InitVal initVal = varDef.getInitVal();
-                if (initVal != null) {
-                    if (!(initVal.getInitForm() instanceof InitValList)) {
-                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "Expect a init list");
-                    }
-                    // This function used DUP. DO NOT reorder!
-                    parseArrayInit(arrayDef, ((InitValList)initVal.getInitForm()), 0, table);
-                }
+                ArrayInitHelper.buildArray(arrayDef, varDef, initVisitor, initHelper, table);
                 initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
                 initHelper.reportPopOpStack(1);
             }
@@ -120,44 +73,13 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         }
     }
 
-    public void parseFinalArrayInit(ArrayDefNode arrayDef, IdentEntry entry, int shift, int level) {
-        int perBlockShift = 1;
-        for (int index  = level + 1; index < arrayDef.getDimSizes().size(); ++index) {
-            perBlockShift *= arrayDef.getDimSizes().get(index);
-        }
-        for (int i = 0; i <= arrayDef.getDimSizes().get(level); ++i) {
-            initVisitor.visitInsn(DUP);
-            initVisitor.visitLdcInsn(i);
-            if (level != arrayDef.getDimSizes().size() - 1) {
-                initVisitor.visitInsn(AALOAD);
-                initHelper.reportUsedStack(2);
-                initHelper.reportUseOpStack(1, arrayDef.getIndexedTypeString(level + 1));
-                parseFinalArrayInit(arrayDef, entry, shift + perBlockShift * i, level + 1);
-                initVisitor.visitInsn(POP);
-                initHelper.reportPopOpStack(1);
-            } else {
-                initVisitor.visitInsn(DUP);
-                initVisitor.visitLdcInsn(i);
-                initVisitor.visitLdcInsn(entry.getCompileTimeValues().get(shift + i));
-                initVisitor.visitInsn(IASTORE);
-                initHelper.reportUsedStack(3);
-            }
-        }
-    }
-
     public void parseStaticFinalDef(ConstDef constDef, SymbolTable table) {
         IdentEntry entry = table.addConstDef(constDef);
         DefNode def = entry.getDef();
         switch (def) {
             case ArrayDefNode arrayDef -> {
                 cv.visitField(ACC_PUBLIC + ACC_STATIC + ACC_FINAL, entry.getName(), arrayDef.getDescriptor(), null, null).visitEnd();
-                for (int dimSize : arrayDef.getDimSizes()) {
-                    initVisitor.visitIntInsn(SIPUSH, dimSize);
-                }
-                initHelper.reportUsedStack(arrayDef.getDimSizes().size());
-                initVisitor.visitMultiANewArrayInsn(arrayDef.getDescriptor(), arrayDef.getDimSizes().size());
-                initHelper.reportUseOpStack(1, arrayDef.getTypeString());
-                parseFinalArrayInit(arrayDef, entry, 0, 0);
+                ArrayInitHelper.buildFinalArray(arrayDef, entry, initVisitor, initHelper, table);
                 initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", entry.getName(), arrayDef.getDescriptor());
                 initHelper.reportPopOpStack(1);
             }
