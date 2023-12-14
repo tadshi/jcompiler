@@ -1,5 +1,7 @@
 package com.cotoj.adaptor;
 
+import java.util.Objects;
+
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 
@@ -27,4 +29,20 @@ public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNo
     }
 
     public abstract String getDescriptor();
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof DefNode def) {
+            return this.name.equals(def.name) &&
+                    this.owner.equals(def.owner) &&
+                    this.type.equals(def.type);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, owner, type);
+    }
 }

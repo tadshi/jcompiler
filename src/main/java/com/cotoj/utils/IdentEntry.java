@@ -13,14 +13,16 @@ public class IdentEntry {
     private final ReturnType type;
     private final DefNode def;
     private final int level;
+    private final boolean mut;
     private IdentEntry last;
     private final List<Integer> compileTimeValue;
 
-    public IdentEntry(DefNode def, int level) {
+    public IdentEntry(DefNode def, int level, boolean mut) {
         this.name = def.getName();
         this.type = def.getType();
         this.def = def;
         this.level = level;
+        this.mut = mut;
         this.last = null;
         this.compileTimeValue = null;
     }
@@ -30,6 +32,7 @@ public class IdentEntry {
         this.type = def.getType();
         this.def = def;
         this.level = level;
+        this.mut = false;
         this.last = null;
         this.compileTimeValue = new ArrayList<>();
         this.compileTimeValue.add(compileTimeValue);
@@ -40,6 +43,7 @@ public class IdentEntry {
         this.type = def.getType();
         this.def = def;
         this.level = level;
+        this.mut = false;
         this.last = null;
         this.compileTimeValue = new ArrayList<>(compileTimeValues);
     }
@@ -49,6 +53,7 @@ public class IdentEntry {
         this.type = null;
         this.def = def;
         this.level = level;
+        this.mut = false;
         this.last = null;
         this.compileTimeValue = null;
     }
@@ -63,6 +68,10 @@ public class IdentEntry {
 
     public ReturnType getType() {
         return type;
+    }
+
+    public boolean isMut() {
+        return mut;
     }
 
     public int getLevel() {

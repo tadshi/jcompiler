@@ -16,11 +16,11 @@ public final class VarDefNode extends DefNode {
     }
 
     public String getTypeString() {
-        return "I";
+        return getType().toTypeString();
     }
 
     @Override
     public String getDescriptor() {
-        return "I";
+        return getType().toDescriptor();
     }
 }

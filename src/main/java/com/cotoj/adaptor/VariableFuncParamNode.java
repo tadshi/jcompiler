@@ -15,4 +15,9 @@ public final class VariableFuncParamNode extends FuncParamNode {
         ret.addDimension(0);
         return ret;
     }
+
+    @Override
+    public String getDescriptor() {
+        return "[" + this.getType().toDescriptor();
+    }
 }

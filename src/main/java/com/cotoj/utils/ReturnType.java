@@ -49,6 +49,7 @@ public sealed interface ReturnType {
         return switch (ident.getType()) {
             case "INT" -> new Integer();
             case "CONST" -> new Integer(); // TODO
+            case "STRING" -> JavaType.STRING;
             default -> new JavaClass(ident.getType());
         };
     }

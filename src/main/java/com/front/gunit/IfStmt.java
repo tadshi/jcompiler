@@ -2,7 +2,7 @@ package com.front.gunit;
 public class IfStmt extends ObjectClass implements StmtTrait {
     private Cond cond;
     private Stmt stmt;
-    private ElseStmt elseStmt;
+    private Stmt elseStmt;
 
     public void setCond(Cond cond){
         this.cond = cond;
@@ -12,7 +12,7 @@ public class IfStmt extends ObjectClass implements StmtTrait {
         this.stmt = stmt;
     }
 
-    public void setElseStmt(ElseStmt elseStmt){
+    public void setElseStmt(Stmt elseStmt){
         this.elseStmt = elseStmt;
     }
     
@@ -20,7 +20,7 @@ public class IfStmt extends ObjectClass implements StmtTrait {
         return cond;
     }
 
-    public ElseStmt getElseStmt() {
+    public Stmt getElseStmt() {
         return elseStmt;
     }
 

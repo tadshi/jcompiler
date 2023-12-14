@@ -28,6 +28,7 @@ import com.front.gunit.ConstExp;
 import com.front.gunit.ConstInitValList;
 import com.front.gunit.FuncDef;
 import com.front.gunit.FuncFParam;
+import com.front.gunit.FuncFParams;
 import com.front.gunit.Ident;
 import com.front.gunit.ObjectClass;
 import com.front.gunit.VarDef;
@@ -101,8 +102,8 @@ public class SymbolTable {
         return context.size();
     }
 
-    public IdentEntry addDefNode(DefNode def) {
-        IdentEntry entry = new IdentEntry(def, getLevel());
+    public IdentEntry addDefNode(DefNode varDef, boolean mut) {
+        IdentEntry entry = new IdentEntry(varDef, getLevel(), mut);
         addEntry(entry);
         return entry;
     }
@@ -125,7 +126,7 @@ public class SymbolTable {
         } else {
             def = new VarDefNode(ident.getName(), getLevel() == 0 ?  Owner.builtinStatic() : new Owner.Local(), ReturnType.fromIdent(ident), true);
         }
-        return addDefNode(def);
+        return addDefNode(def, true);
     }
 
     public IdentEntry addConstDef(ConstDef constDef) {
@@ -171,19 +172,22 @@ public class SymbolTable {
     public IdentEntry addFuncDef(FuncDef funcDef, Owner owner) {
         Ident ident = funcDef.getIdent();
         FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()));
-        for (FuncFParam funcFParam : funcDef.getFuncFParams().getFuncFParams()) {
-            FuncParamNode paramNode = switch (funcFParam.getType()) {
-                case NONARRAY -> new SimpleFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
-                case ARRAY1D -> new ArrayFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
-                case ARRAYMULTID -> {
-                    var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
-                    for (ConstExp constExp : funcFParam.getConstExp()) {
-                        marrParam.addDim(ConstExpParser.parseConstExp(constExp, this));
+        FuncFParams funcFParams = funcDef.getFuncFParams();
+        if (funcFParams != null) {
+            for (FuncFParam funcFParam : funcFParams.getFuncFParams()) {
+                FuncParamNode paramNode = switch (funcFParam.getType()) {
+                    case NONARRAY -> new SimpleFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
+                    case ARRAY1D -> new ArrayFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
+                    case ARRAYMULTID -> {
+                        var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
+                        for (ConstExp constExp : funcFParam.getConstExp()) {
+                            marrParam.addDim(ConstExpParser.parseConstExp(constExp, this));
+                        }
+                        yield marrParam;
                     }
-                    yield marrParam;
-                }
-            };
-            funcDefNode.addParam(paramNode);
+                };
+                funcDefNode.addParam(paramNode);
+            }
         }
         IdentEntry entry = new IdentEntry(funcDefNode, getLevel());
         addEntry(entry);
@@ -197,7 +201,7 @@ public class SymbolTable {
         }
         FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
         for (FuncParamNode param: funcDef.getParams()) {
-            addEntry(new IdentEntry(param.toDef(), getLevel()));
+            addEntry(new IdentEntry(param.toDef(), getLevel(), true));
         }
     }
 

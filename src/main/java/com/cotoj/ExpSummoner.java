@@ -19,6 +19,7 @@ import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.adaptor.VariableFuncParamNode;
 import com.cotoj.utils.AutoPacker;
 import com.cotoj.utils.IdentEntry;
+import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
@@ -40,7 +41,11 @@ public interface ExpSummoner extends Opcodes {
 
     private static void loadFuncParam(List<FuncParamNode> funcParams, List<Exp> callParams, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
         int defParamIndex = 0;
+        boolean hasVariableParam = funcParams.size() > 1 && (funcParams.getLast() instanceof VariableFuncParamNode);
         int varParamIndex = 0;
+        if ((hasVariableParam && funcParams.size() < callParams.size() - 1) || (!hasVariableParam && funcParams.size() != callParams.size())) {
+            throw new CError(ErrorType.FUNC_PARAM_FAIL, "The count of params do not match the function signature,");
+        }
         for (Exp callParam : callParams) {
             FuncParamNode defParam = funcParams.get(defParamIndex);
             ReturnType paramType = switch (defParam) {
@@ -66,7 +71,7 @@ public interface ExpSummoner extends Opcodes {
                 case VariableFuncParamNode vParam -> {
                     if (varParamIndex == 0) {
                         mv.visitIntInsn(SIPUSH, callParams.size() - defParamIndex);
-                        mv.visitInsn(ANEWARRAY);
+                        mv.visitTypeInsn(ANEWARRAY, vParam.getType().toTypeString());
                         helper.reportUseOpStack(1, "[" + vParam.getType().toTypeString());
                     }
                     helper.dup(mv);
@@ -87,13 +92,19 @@ public interface ExpSummoner extends Opcodes {
             }
             if (varParamIndex > 0) {
                 if (defParam.getType().isPrimitive()) {
-                    mv.visitInsn(IALOAD);
+                    mv.visitInsn(IASTORE);
                 } else {
-                    mv.visitInsn(AALOAD);
+                    mv.visitInsn(AASTORE);
                 }
                 helper.reportPopOpStack(3);
             }
             ++defParamIndex;
+        }
+        if (hasVariableParam && varParamIndex == 0) {
+            VariableFuncParamNode vParam = ((VariableFuncParamNode)funcParams.getLast());
+            mv.visitIntInsn(SIPUSH, callParams.size() - defParamIndex);
+            mv.visitTypeInsn(ANEWARRAY, vParam.getType().toTypeString());
+            helper.reportUseOpStack(1, "[" + vParam.getType().toTypeString());
         }
     }
 
@@ -155,6 +166,11 @@ public interface ExpSummoner extends Opcodes {
                 helper.reportUseOpStack(1, sa.getFieldType().toTypeString());
                 yield sa.getFieldType();
             }
+            case StringLiteral str -> {
+                mv.visitLdcInsn(str.getLiteralString());
+                helper.reportUseOpStack(1, JavaType.STRING.toTypeString());
+                yield JavaType.STRING;
+            }
             default -> throw new RuntimeException(primaryExp.getWrappedExp().getClass() + " should not found in PrimaryExp");
         };
     }
@@ -177,7 +193,10 @@ public interface ExpSummoner extends Opcodes {
                 yield retType;
             } 
             case FuncCall funcCall -> {
-                IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.fromString(funcCall.getIdent().getKind()));
+                IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.FUNCTION);
+                if (entry == null) {
+                    throw new CError(ErrorType.IDENT_NOT_EXISTS, funcCall.getIdent().getName() + "is a Teapot - 14.");
+                }
                 if (!(entry.getDef() instanceof FuncDefNode)) {
                     throw new CError(ErrorType.UNEXPECTED_TOKEN, entry.getName() + " is not a function!");
                 }
@@ -188,7 +207,7 @@ public interface ExpSummoner extends Opcodes {
                     case Owner.Static(String clazz, boolean isInt) -> {mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);}
                     default -> throw new RuntimeException("A function cannot be possessed by " + funcDef.getOwner());
                 }
-                helper.reportPopOpStack(funcDef.getParams().size());
+                helper.reportPopOpStack(rparams.size());
                 ReturnType retType = funcDef.getReturnType();
                 if (!(retType instanceof ReturnType.Void)) {
                     helper.reportUseOpStack(1, retType.toTypeString());
@@ -209,9 +228,9 @@ public interface ExpSummoner extends Opcodes {
                 throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
             }
             switch (mulExp.getCh()) {
-                case "MULT *" -> mv.visitInsn(IMUL);
-                case "DIV /" -> mv.visitInsn(IDIV);
-                case "MOD %" -> mv.visitInsn(IREM);
+                case "*" -> mv.visitInsn(IMUL);
+                case "/" -> mv.visitInsn(IDIV);
+                case "%" -> mv.visitInsn(IREM);
                 default -> throw new RuntimeException(mulExp.getCh());
             }
             helper.reportPopOpStack(2);
@@ -233,8 +252,8 @@ public interface ExpSummoner extends Opcodes {
                 throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
             }
             switch (addExp.getCh()) {
-                case "PLUS +" -> mv.visitInsn(IADD);
-                case "MINU -" -> mv.visitInsn(ISUB);
+                case "+" -> mv.visitInsn(IADD);
+                case "-" -> mv.visitInsn(ISUB);
                 default -> throw new RuntimeException(addExp.getCh());
             }
             helper.reportPopOpStack(2);
@@ -252,11 +271,11 @@ public interface ExpSummoner extends Opcodes {
                 sb.append(defParam.getType().toDescriptor());
             }
             sb.append(')');
-            sb.append(dotter.getType().toDescriptor());
+            sb.append(dotter.getReturnType().toDescriptor());
             mv.visitMethodInsn(INVOKEVIRTUAL, curType.toTypeString(), dotter.getIdentName(), sb.toString(), dotter.isInterface());
-            curType = dotter.getType();
+            curType = dotter.getReturnType();
             helper.reportPopOpStack(dotter.getDefParams().size() + 1);
-            helper.reportUseOpStack(1, curType.toDescriptor());
+            helper.reportUseOpStack(1, curType.toTypeString());
         }
         return curType;
     }
@@ -277,6 +296,7 @@ public interface ExpSummoner extends Opcodes {
         } else {
             mv.visitInsn(ICONST_1);
             Label endLabel = new Label();
+            helper.reportUseOpStack(1, "I");
             ReturnType lType = summonRelExp(relExp.getRelExp(), mv, helper, table);
             ReturnType rType = summonAddExp(relExp.getAddExp(), mv, helper, table);
             helper.visitFrame(mv);
@@ -292,6 +312,7 @@ public interface ExpSummoner extends Opcodes {
                 case "<" -> mv.visitJumpInsn(IF_ICMPLT, endLabel);
                 default -> throw new RuntimeException("Not sure what is " + relExp.getCh());
             }
+            helper.reportPopOpStack(2);
             mv.visitInsn(POP);
             mv.visitInsn(ICONST_0);
             mv.visitLabel(endLabel);
@@ -337,6 +358,7 @@ public interface ExpSummoner extends Opcodes {
             }
             helper.dup(mv);
             mv.visitJumpInsn(IFEQ, midPoint);
+            helper.reportPopOpStack(1);
             return TypePair.Yup(summonEqxp(lAndExp.getEqExp(), mv, helper, table));
         }
     }
@@ -353,6 +375,7 @@ public interface ExpSummoner extends Opcodes {
             }
             helper.dup(mv);
             mv.visitJumpInsn(IFNE, skipPoint);
+            helper.reportPopOpStack(1);
             return TypePair.Yup(summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint).type);
         }
     }

@@ -2,12 +2,14 @@ package com.cotoj.adaptor;
 
 import com.cotoj.utils.ReturnType;
 import com.front.gunit.AddExp;
+import com.front.gunit.Exp;
 import com.front.gunit.FuncDef;
 import com.front.gunit.FuncFParam;
 import com.front.gunit.FuncFParams;
 import com.front.gunit.FuncType;
 import com.front.gunit.Ident;
 import com.front.gunit.LVal;
+import com.front.gunit.StringLiteral;
 import com.front.gunit.MainFuncDef;
 import com.front.gunit.MulExp;
 import com.front.gunit.ObjectClass;
@@ -37,8 +39,19 @@ public interface Mimic {
         return mimicFromPrimaryExp(lval);
     }
 
+    public static AddExp mimicAddExp(String literalString) {
+        StringLiteral literal = new StringLiteral(literalString);
+        return mimicFromPrimaryExp(literal);
+    }
+
     public static AddExp mimicAddExp(StaticAccessExp sa) {
         return mimicFromPrimaryExp(sa);
+    }
+
+    public static Exp wrap(AddExp addExp) {
+        Exp ret = new Exp();
+        ret.setAddExp(addExp);
+        return ret;
     }
 
     public static FuncDef mimicFuncDef(MainFuncDef mainFuncDef) {
@@ -46,17 +59,17 @@ public interface Mimic {
         ret.setBlock(mainFuncDef.getBlock());
         FuncFParams params = new FuncFParams();
         FuncFParam param = new FuncFParam();
-        Ident args = new Ident("VAR", "String");
+        Ident args = new Ident("VAR", "STRING");
         args.setIdent("args", -1);
         param.setIdent(args);
         param.setType(FuncParamType.ARRAY1D);
         params.addFuncFParam(param);
         ret.setFuncFParams(params);
-        FuncType voidType = new FuncType();
-        voidType.setName("VOIDTK");
-        ret.setFuncType(voidType);
+        FuncType intType = new FuncType();
+        intType.setName("INTTK");
+        ret.setFuncType(intType);
         Ident funcIdent = new Ident();
-        funcIdent.setIdent("main", -1);
+        funcIdent.setIdent("__main", -1);
         ret.setIdent(funcIdent);
         return ret;
     }
