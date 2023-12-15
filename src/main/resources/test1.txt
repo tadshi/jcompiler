@@ -1,63 +1,7 @@
-void fun1() 
+def main()
 {
-    printf("Hello, World!");
-}
-void fun2(int ver)
-{
-    printf("Jcompiler ver 0.%d", ver);
-}
-int fun3(int a, int b)
-{
-    if (a > b)
-    {
-        return a;
-    }
-    else
-    {
-        return b;
-    }
-    return a;
-}
-
-int gcd(int a, int b)
-{
-    if (a % b == 0)
-    {
-        return b;
-    }
-    return gcd(b, a % b);
-}
-
-int lcm(int a, int b)
-{
-    int gcds = gcd(a, b);
-    return a * b / gcds;
-}
-
-void fun4(int a, int b, int c)
-{
-    int d = (a + b - c) * a;
-    printf("%d\n", d);
-}
-
-int fun5(int a)
-{
-    if (a == 1)
-    {
-        return 1;
-    }
-    else
-    {
-        return 1;
-    }
-    return fun5(a - 1) + fun5(a - 2);
-}
-int main()
-{
-    run func3;
-
-    lock x;
-    unlock x;
+    await x;
+    await x();
 
     return 0;
 }

@@ -142,6 +142,7 @@ public class LexicalParser {
         if (ch == '=') {
             int nextch = getChar();
             if (nextch == '=') return "EQL ==";
+            else if(nextch == '>') return "RET =>";
             else {
                 index--;
                 return "ASSIGN =";
@@ -200,8 +201,17 @@ public class LexicalParser {
         if (str.equals("thread")) return "THREADTK";
         if (str.equals("run")) return "RUNTK";
         if (str.equals("shared")) return "SHAREDTK";
+        if (str.equals("float")) return "FLOATTK";
+        if (str.equals("bool")) return "BOOLTK";
+        if (str.equals("string")) return "STRINGTK";
+        if (str.equals("list")) return "LISTTK";
+        if (str.equals("dict")) return "DICTTK";
+        if (str.equals("def")) return "DEFTK";
+        if (str.equals("fn")) return "FNTK";
         if (str.equals("lock")) return "LOCKTK";
-        if (str.equals("unlock")) return "UNLOCKTK";
+        if (str.equals("semaphore")) return "SEMAPHORETK";
+        if (str.equals("await")) return "AWAITTK";
+        if (str.equals("signal")) return "SIGNALTK";
         return "";
     }
     
@@ -212,7 +222,7 @@ public class LexicalParser {
             str.append(c);
             c = getChar();
         }
-        return "STRCON \"" + str + "\"";
+        return "STRCON " + str;
     }
     
     void dealWithAnno(int type) { //0为//,1为/*

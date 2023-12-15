@@ -11,8 +11,6 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.*;
 import com.front.gunit.FuncFParam.FuncParamType;
 
-import javax.xml.stream.FactoryConfigurationError;
-
 public class GrammaticalParser {
     CompUnit root;
     int treeId = 0;
@@ -50,13 +48,22 @@ public class GrammaticalParser {
                         ret.addDecl(decl);
                     }
                 }
-                case "VOIDTK", "THREADTK" -> {
+                case "THREADTK" -> {
                     label = 1;
                     grammarId--;
                     FuncDef funcDef = parseFuncDef();
                     ret.addFuncDef(funcDef);
                 }
-                case "INTTK" -> {
+                case "FNTK" -> {
+                    FuncDef funcDecl = parseFuncDecl();
+                    ret.addFuncDef(funcDecl);
+                }
+                case "SHAREDTK", "LOCKTK", "SEMAPHORETK" -> {
+                    grammarId--;
+                    Decl decl = parseDecl();
+                    ret.addDecl(decl);
+                }
+                default -> {
                     grammarId++;
                     String type2 = wordMap.get(grammarId).type;
                     if (type2.equals("MAINTK")) {
@@ -104,10 +111,14 @@ public class GrammaticalParser {
             grammarId--;
             ConstDecl constdecl = parseConstDecl();
             ret = constdecl;
-        }else if(type.equals("INTTK")){
+        }else if(!parseType().isEmpty() || type.equals("SHAREDTK")){
             grammarId--;
             VarDecl varDecl = parseVarDecl();
             ret = varDecl;
+        } else if(type.equals("LOCKTK") || type.equals("SEMAPHORETK")){
+            grammarId--;
+            ParallelDecl parallelDecl = parseParallelDecl();
+            ret = parallelDecl;
         } else {
             errors.add(new CError(ErrorType.NO_SUCH_DECL, "Invalid type " + type + " found."));
         }
@@ -117,39 +128,142 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //FuncDef → ['thread'] FuncType Ident '(' [FuncFParams] ')' Block
+    ParallelDecl parseParallelDecl(){
+        ParallelDecl ret = new ParallelDecl();
+
+        grammarId++;
+        ParallelType parallelType = new ParallelType();
+        parallelType.setName(wordMap.get(grammarId).type);
+        ret.setParallelType(parallelType);
+
+        VarDef varDef = parseVarDef(false, parallelType.getName());
+        ret.addVarDef(varDef);
+        grammarId++;
+
+        while (wordMap.get(grammarId).type.equals("COMMA")) {
+            varDef = parseVarDef(false, parallelType.getName());
+            ret.addVarDef(varDef);
+            grammarId++;
+        }
+        if (wordMap.get(grammarId).type.equals("SEMICN")) {
+
+        } else {
+            grammarId--;
+            //error
+        }
+
+        id2Object.put(treeId++, ret);
+
+        return ret;
+    }
+
+    FuncDef parseFuncDecl(){
+        grammarId++;
+        FuncDef ret = new FuncDef();
+
+        if(wordMap.get(grammarId).type.equals("IDENFR")) {
+            Ident ident = new Ident("PROC", "");
+            ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+            grammarId++;
+            if (wordMap.get(grammarId).type.equals("ASSIGN")) {
+                grammarId++;
+                if (wordMap.get(grammarId).type.equals("DEFTK")) {
+                    grammarId++;
+                    if (wordMap.get(grammarId).type.equals("LPARENT")) {
+                        grammarId++;
+                        if (!wordMap.get(grammarId).type.equals("RPARENT")) {
+                            grammarId--;
+                            FuncFParams funcFParams = parseFuncFParams();
+                            ret.setFuncFParams(funcFParams);
+                            grammarId++;
+                            if (!wordMap.get(grammarId).type.equals("RPARENT")) {
+                                grammarId--;
+                                //error
+                            }
+                        } else {
+                        }
+                        grammarId++;
+                        FuncType funcType = parseFuncType();
+                        ret.setFuncType(funcType);
+                        ident.setType(funcType.getName());
+                        id2Object.put(treeId++, ident);
+                        ret.setIdent(ident);
+
+                        Block block = parseBlock();
+
+                        if (block.getBlockItems().isEmpty() || !(block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem() instanceof Stmt
+                                && ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt() instanceof ReturnStmt)){
+                            ReturnStmt returnStmt = new ReturnStmt();
+                            BlockItem blockItem = new BlockItem();
+                            returnStmt.setLastReturn();
+                            blockItem.setWrappedBlockItem(returnStmt);
+                            block.addBlockItem(blockItem);
+                        }else{
+                            ((ReturnStmt) ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt()).setLastReturn();
+                        }
+
+                        ret.setBlock(block);
+                    }
+                }
+            }
+        }
+
+        id2Object.put(treeId++, ret);
+
+        return ret;
+    }
+
+    //FuncDef → ['thread'] 'def' Ident '(' [FuncFParams] ')' ['=>' Type] Block
     FuncDef parseFuncDef(){
         FuncDef ret = new FuncDef();
-        Ident ident = new Ident("PROC", wordMap.get(grammarId+1).content);
+        Ident ident = new Ident("PROC", "");
         grammarId++;
         if (wordMap.get(grammarId).type.equals("THREADTK")){
             ret.setIsThread();
             grammarId++;
         }
-        FuncType funcType = parseFuncType();
-        ret.setFuncType(funcType);
-        grammarId++;
-        LexicalParser.Word word = wordMap.get(grammarId);
-        if (word.type.equals("IDENFR")) {
-            ident.setIdent(word.content, word.line);
-            id2Object.put(treeId++, ident);
-            ret.setIdent(ident);
+        if(wordMap.get(grammarId).type.equals("DEFTK")) {
             grammarId++;
-            if (wordMap.get(grammarId).type.equals("LPARENT")) {
+            LexicalParser.Word word = wordMap.get(grammarId);
+            if (word.type.equals("IDENFR")) {
+                ident.setIdent(word.content, word.line);
                 grammarId++;
-                if (!wordMap.get(grammarId).type.equals("RPARENT")) {
-                    grammarId--;
-                    FuncFParams funcFParams = parseFuncFParams();
-                    ret.setFuncFParams(funcFParams);
+                if (wordMap.get(grammarId).type.equals("LPARENT")) {
                     grammarId++;
                     if (!wordMap.get(grammarId).type.equals("RPARENT")) {
                         grammarId--;
-                        //error
+                        FuncFParams funcFParams = parseFuncFParams();
+                        ret.setFuncFParams(funcFParams);
+                        grammarId++;
+                        if (!wordMap.get(grammarId).type.equals("RPARENT")) {
+                            grammarId--;
+                            //error
+                        }
+                    } else {
                     }
-                } else {
+                    grammarId++;
+                    FuncType funcType = parseFuncType();
+                    ret.setFuncType(funcType);
+                    ident.setType(funcType.getName());
+                    id2Object.put(treeId++, ident);
+                    ret.setIdent(ident);
+
+                    Block block = parseBlock();
+
+                    if ((block.getBlockItems().isEmpty()) || !(block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem() instanceof Stmt
+                            && ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt() instanceof ReturnStmt)){
+                        ReturnStmt returnStmt = new ReturnStmt();
+                        BlockItem blockItem = new BlockItem();
+                        returnStmt.setLastReturn();
+                        blockItem.setWrappedBlockItem(returnStmt);
+                        block.addBlockItem(blockItem);
+                    }else{
+                        ((ReturnStmt) ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt()).setLastReturn();
+                    }
+
+                    ret.setBlock(block);
+
                 }
-                Block block = parseBlock();
-                ret.setBlock(block);
             }
         }
 
@@ -175,16 +289,19 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //BlockItem → Decl | Stmt
+    //BlockItem → Decl | Stmt | FuncDef
     BlockItem parseBlockItem(){
         BlockItem ret = new BlockItem();
         grammarId++;
         String name = wordMap.get(grammarId).type;
-        if (name.equals("CONSTTK") || name.equals("INTTK")) {
+        if (name.equals("CONSTTK") || !parseType().isEmpty() || name.equals("LOCKTK") || name.equals("SEMAPHORETK")) {
             grammarId--;
             Decl decl = parseDecl();
             ret.setWrappedBlockItem(decl); //需要退回一个
-        } else {
+        } else if(name.equals("FNTK")){
+            FuncDef funcDef = parseFuncDecl();
+            ret.setWrappedBlockItem(funcDef);
+        }else {
             grammarId--;
             Stmt stmt = parseStmt();
             ret.setWrappedBlockItem(stmt);
@@ -337,15 +454,25 @@ public class GrammaticalParser {
                 id2Object.put(treeId++, callThreadStmt);
                 ret.setWrappedStmt(callThreadStmt);
             }
-            case "LOCKTK" -> {
-                LockStmt lockStmt = new LockStmt();
+            case "AWAITTK" -> {
+                AwaitStmt awaitStmt = new AwaitStmt();
                 grammarId++;
                 if (wordMap.get(grammarId).type.equals("IDENFR")){
                     Ident ident = new Ident();
                     //必须是thread类型的函数名
                     ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
-                    lockStmt.setIdent(ident);
+                    awaitStmt.setIdent(ident);
                     id2Object.put(treeId++, ident);
+
+                    grammarId++;
+                    if(wordMap.get(grammarId).type.equals("LPARENT")){
+                        grammarId++;
+                        while (!wordMap.get(grammarId).type.equals("RPARENT")) grammarId++;
+                        ident.setKind("PROC");
+                    }else{
+                        grammarId--;
+                    }
+
                 }else{
                     grammarId--;
                     //error
@@ -355,17 +482,17 @@ public class GrammaticalParser {
                     grammarId--;
                     //error
                 }
-                id2Object.put(treeId++, lockStmt);
-                ret.setWrappedStmt(lockStmt);
+                id2Object.put(treeId++, awaitStmt);
+                ret.setWrappedStmt(awaitStmt);
             }
-            case "UNLOCKTK" -> {
-                UnlockStmt unlockStmt = new UnlockStmt();
+            case "SIGNALTK" -> {
+                SignalStmt signalStmt = new SignalStmt();
                 grammarId++;
                 if (wordMap.get(grammarId).type.equals("IDENFR")){
                     Ident ident = new Ident();
                     //必须是thread类型的函数名
                     ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
-                    unlockStmt.setIdent(ident);
+                    signalStmt.setIdent(ident);
                     id2Object.put(treeId++, ident);
                 }else{
                     grammarId--;
@@ -376,8 +503,8 @@ public class GrammaticalParser {
                     grammarId--;
                     //error
                 }
-                id2Object.put(treeId++, unlockStmt);
-                ret.setWrappedStmt(unlockStmt);
+                id2Object.put(treeId++, signalStmt);
+                ret.setWrappedStmt(signalStmt);
             }
             case "IDENFR" -> {
                 grammarId--;
@@ -537,9 +664,9 @@ public class GrammaticalParser {
     FuncFParam parseFuncFParam(){
         FuncFParam ret = new FuncFParam();
 
-        Ident ident = new Ident("PARA","INT");
         grammarId++;
-        parseByte();
+        String type = parseType();
+        Ident ident = new Ident("PARA",type);
         grammarId++;
 
         LexicalParser.Word word = wordMap.get(grammarId);
@@ -585,9 +712,13 @@ public class GrammaticalParser {
 
     FuncType parseFuncType(){
         FuncType ret = new FuncType();
-        String name = wordMap.get(grammarId).type;
-        if(name.equals("VOIDTK") || name.equals("INTTK")){
-            
+        String name;
+        if (wordMap.get(grammarId).type.equals("RET")){
+            grammarId++;
+            name = parseType();
+        }else{
+            grammarId--;
+            name = "VOIDTK";
         }
         ret.setName(name);
         
@@ -596,12 +727,12 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //MainFuncDef → 'int' 'main' '(' ')' Block
+    //MainFuncDef → 'def' 'main' '(' ')' Block
     MainFuncDef parseMainFuncDef(){
         MainFuncDef ret = new MainFuncDef();
 
         grammarId++;
-        if (wordMap.get(grammarId).type.equals("INTTK")) {
+        if (wordMap.get(grammarId).type.equals("DEFTK")) {
             grammarId++;
             if (wordMap.get(grammarId).type.equals("MAINTK")) {
                 grammarId++;
@@ -614,6 +745,18 @@ public class GrammaticalParser {
 
                     }
                     Block block = parseBlock();
+
+                    if (block.getBlockItems().isEmpty() || !(block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem() instanceof Stmt
+                            && ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt() instanceof ReturnStmt)){
+                        ReturnStmt returnStmt = new ReturnStmt();
+                        BlockItem blockItem = new BlockItem();
+                        returnStmt.setLastReturn();
+                        blockItem.setWrappedBlockItem(returnStmt);
+                        block.addBlockItem(blockItem);
+                    }else{
+                        ((ReturnStmt) ((Stmt) block.getBlockItems().get(block.getBlockItems().size() - 1).getWrappedBlockItem()).getWrappedStmt()).setLastReturn();
+                    }
+
                     ret.setBlock(block);
                 }
             }
@@ -631,12 +774,13 @@ public class GrammaticalParser {
         String type = wordMap.get(grammarId).type;
         if(type.equals("CONSTTK")){
             grammarId++;
-            parseByte();
-            ConstDef constDef = parseConstDef();
+            String typ = parseType();
+            grammarId++;
+            ConstDef constDef = parseConstDef(typ);
             ret.addconstDef(constDef);
             grammarId++;
             while(wordMap.get(grammarId).type.equals("COMMA")){
-                constDef = parseConstDef();
+                constDef = parseConstDef(typ);
                 ret.addconstDef(constDef);
                 grammarId++;
             }
@@ -652,9 +796,10 @@ public class GrammaticalParser {
     }
 
     //ConstDef → Ident { '[' ConstExp ']' } '=' ConstInitVal
-    ConstDef parseConstDef(){
+    ConstDef parseConstDef(String type){
         ConstDef ret = new ConstDef();
-        Ident ident = new Ident("VAR", "CONST");
+        Ident ident = new Ident("VAR", type);
+        ident.setIsConst();
 
         grammarId++;
         LexicalParser.Word word = wordMap.get(grammarId);
@@ -688,11 +833,14 @@ public class GrammaticalParser {
         return ret;
     }
 
-    void parseByte(){
-        String type = wordMap.get(grammarId).content;
-        if(type.equals("INTTK")){
-
+    String parseType(){
+        String type = wordMap.get(grammarId).type;
+        if(type.equals("INTTK")|| type.equals("FLOATTK") || type.equals("BOOLTK") ||
+                type.equals("STRINGTK") || type.equals("LISTTK") || type.equals("DICTTK")){
+            return type;
         }
+        //error
+        return "";
     }
 
     ConstExp parseConstExp(){
@@ -734,18 +882,22 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //VarDecl → BType VarDef { ',' VarDef } ';'
+    //VarDecl → ['shared'] BType VarDef { ',' VarDef } ';'
     VarDecl parseVarDecl(){
         VarDecl ret = new VarDecl();
         grammarId++;
-        parseByte();
-
-        VarDef varDef = parseVarDef();
+        boolean sharedFlag = false;
+        if(wordMap.get(grammarId).type.equals("SHAREDTK")) {
+            sharedFlag = true;
+            grammarId++;
+        }
+        String type = parseType();
+        VarDef varDef = parseVarDef(sharedFlag, type);
         ret.addVarDef(varDef);
         grammarId++;
 
         while (wordMap.get(grammarId).type.equals("COMMA")) {
-            varDef = parseVarDef();
+            varDef = parseVarDef(sharedFlag, type);
             ret.addVarDef(varDef);
             grammarId++;
         }
@@ -761,17 +913,12 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //VarDef → Ident { '[' ConstExp ']'} | Ident { '[' ConstExp ']' } '=' InitVal
-    VarDef parseVarDef(){
+    //VarDef → Type Ident { '[' ConstExp ']'} | Ident { '[' ConstExp ']' } '=' InitVal
+    VarDef parseVarDef(boolean sharedFlag, String type){
         VarDef ret = new VarDef();
-        Ident ident = new Ident("VAR","INT");
+        Ident ident = new Ident("VAR",type);
         grammarId++;
 
-        boolean sharedFlag = false;
-        if (wordMap.get(grammarId).type.equals("SHAREDTK")){
-            sharedFlag = true;
-            grammarId++;
-        }
         LexicalParser.Word word = wordMap.get(grammarId);
         if (word.type.equals("IDENFR")) {
             if (sharedFlag) ident.setShared();
