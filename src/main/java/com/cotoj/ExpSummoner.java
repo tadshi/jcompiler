@@ -268,7 +268,7 @@ public interface ExpSummoner extends Opcodes {
             loadFuncParam(dotter.getDefParams(), dotter.getCallParams(), mv, helper, table);
             StringBuilder sb = new StringBuilder("(");
             for (var defParam : dotter.getDefParams()) {
-                sb.append(defParam.getType().toDescriptor());
+                sb.append(defParam.getDescriptor());
             }
             sb.append(')');
             sb.append(dotter.getReturnType().toDescriptor());

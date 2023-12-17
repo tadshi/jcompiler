@@ -43,6 +43,11 @@ public final class JavaBytecodeSummoner {
                         staticSummoner.parseStaticFinalDef(constDef, symbolTable);
                     }
                 }
+                case ParallelDecl parallelDecl -> {
+                    for (VarDef varDef : parallelDecl.getVarDefs()) {
+                        staticSummoner.parseStaticParallelDef(varDef, parallelDecl.getParallelType(), symbolTable);
+                    }
+                }
             }
         }
         staticSummoner.masterUp();

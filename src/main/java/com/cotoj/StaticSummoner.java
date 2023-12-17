@@ -19,6 +19,7 @@ import com.front.cerror.ErrorType;
 import com.front.gunit.ConstDef;
 import com.front.gunit.Exp;
 import com.front.gunit.InitVal;
+import com.front.gunit.ParallelType;
 import com.front.gunit.VarDef;
 
 /**
@@ -30,18 +31,18 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
     MethodHelper initHelper;
     public StaticSummoner(File logFile, SymbolTable table) throws FileNotFoundException {
         super(logFile);
-        cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Static", null, "java/lang/Object", null);
-        initVisitor = cv.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        cv.visit(V17, ACC_PUBLIC + ACC_FINAL, "com/oto/Static", null, "java/lang/Object", null);
+        initVisitor = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "<clinit>", "()V", null, null);
         initVisitor.visitCode();
-        initVisitor.visitVarInsn(ALOAD, 0);
-        initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        // initVisitor.visitVarInsn(ALOAD, 0);
+        // initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
         initHelper = new MethodHelper("com/oto/Static");
 
         cv.visitField(ACC_PUBLIC + ACC_STATIC, "__jScanner", "Ljava/util/Scanner;", null, null);
         initVisitor.visitTypeInsn(NEW, "java/util/Scanner");
         initVisitor.visitInsn(DUP);
-        initVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        initVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Scanner", "<init>", "(Ljava/io/PrintStream;)V", false);
+        initVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "in", "Ljava/io/InputStream;");
+        initVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Scanner", "<init>", "(Ljava/io/InputStream;)V", false);
         initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", "__jScanner", "Ljava/util/Scanner;");
         initHelper.reportUsedStack(3);
         table.addDefNode(new VarDefNode("__jScanner", Owner.builtinStatic(), new ReturnType.JavaClass("java/util/Scanner"), false), false);
@@ -92,9 +93,12 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         }
     }
 
+    public void parseStaticParallelDef(VarDef varDef, ParallelType pType, SymbolTable table) {
+        
+    }
+    
     @Override
     public void masterUp() {
-        initHelper.visitFrame(initVisitor);
         initVisitor.visitInsn(RETURN);
         initHelper.visitMaxs(initVisitor);
         initVisitor.visitEnd();

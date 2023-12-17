@@ -163,13 +163,15 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     }
                     mv.visitInsn(RETURN);
                 }
-                // helper.visitFrame(mv);
+                if (!returnStmt.isLastReturn()) {
+                    helper.visitFrame(mv);
+                }
             }
             case LValGetint getIntStmt -> {
                 LValDecl lValDecl = new LValDecl();
                 lValDecl.setLVal(getIntStmt.getlVal());
                 DotExp dotExp = new DotExp(Mimic.mimicAddExp("__jScanner", new ReturnType.JavaClass("java/util/Scanner")));
-                MethodInvokeDotter dotter = new MethodInvokeDotter("nextint", new ReturnType.Integer(), false);
+                MethodInvokeDotter dotter = new MethodInvokeDotter("nextInt", new ReturnType.Integer(), false);
                 dotExp.addDotter(dotter);
                 lValDecl.setExp(dotExp);
                 summonStmt(lValDecl, mv, table, helper);
@@ -237,6 +239,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     helper.reportPopOpStack(1);
                 }
             }
+            case ParallelDecl para -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "Sorry but parallel types can only be defined in global scope.");
         }
     }
 
@@ -246,6 +249,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             switch(blockItem.getWrappedBlockItem()) {
                 case Decl decl -> summonDecl(decl, mv, table, helper);
                 case Stmt stmt -> summonStmt(stmt.getWrappedStmt(), mv, table, helper);
+                case ReturnStmt retStmt -> mv.visitInsn(RETURN);
                 default -> throw new RuntimeException("No, you cannot have " + blockItem.getWrappedBlockItem().getClass() +
                             " in your block.");
             };
@@ -267,11 +271,11 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         MethodHelper helper = new MethodHelper(funcDefNode);
         mv.visitCode();
         summonBlock(funcDef.getBlock(), mv, table, helper);
-        if (funcDefNode.getReturnType() instanceof ReturnType.Void) {
-            mv.visitInsn(RETURN);
-        } else {
+        // if (funcDefNode.getReturnType() instanceof ReturnType.Void) {
+        //     mv.visitInsn(RETURN);
+        // } else {
             // mv.visitInsn(NOP);
-        }
+        // }
         for (IdentEntry popEntry : table.popContext()) {
             helper.releaseLocal(popEntry.getDef());
         }
