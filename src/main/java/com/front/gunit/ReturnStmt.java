@@ -1,7 +1,5 @@
 package com.front.gunit;
 
-import java.util.TreeMap;
-
 public class ReturnStmt extends ObjectClass implements StmtTrait {
     private Exp exp;
     boolean isLastReturn = false;
@@ -14,5 +12,9 @@ public class ReturnStmt extends ObjectClass implements StmtTrait {
 
     public Exp getExp() {
         return exp;
+    }
+
+    public boolean isLastReturn() {
+        return isLastReturn;
     }
 }
