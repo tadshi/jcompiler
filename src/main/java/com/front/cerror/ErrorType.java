@@ -12,5 +12,6 @@ public enum ErrorType {
     WRONG_RETURN_TYPE,
     TYPE_MISMATCH,
     ASSIGN_TO_CONST,
-    IDENT_NOT_EXISTS
+    IDENT_NOT_EXISTS,
+    NOT_A_THREAD,
 }

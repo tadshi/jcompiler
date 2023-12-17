@@ -4,6 +4,7 @@ import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.FuncType;
 import com.front.gunit.Ident;
+import java.util.concurrent.locks.ReentrantLock;
 
 public sealed interface ReturnType {
     public final record Void() implements ReturnType {
@@ -49,6 +50,8 @@ public sealed interface ReturnType {
         return switch (ident.getType()) {
             case "INTTK" -> new Integer();
             case "STRING" -> JavaType.STRING;
+            case "LOCKTK" -> JavaType.LOCK;
+            case "SEMAPHORETK" -> JavaType.SEM;
             default -> new JavaClass(ident.getType());
         };
     }
