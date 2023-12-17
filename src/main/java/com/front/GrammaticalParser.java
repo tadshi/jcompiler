@@ -437,11 +437,9 @@ public class GrammaticalParser {
                 CallThreadStmt callThreadStmt = new CallThreadStmt();
                 grammarId++;
                 if (wordMap.get(grammarId).type.equals("IDENFR")){
-                    Ident ident = new Ident();
-                    //必须是thread类型的函数名
-                    ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
-                    callThreadStmt.setIdent(ident);
-                    id2Object.put(treeId++, ident);
+                    grammarId--;
+                    FuncCall funcCall = parseFuncCall();
+                    callThreadStmt.setFuncCall(funcCall);
                 }else{
                     grammarId--;
                     //error
@@ -458,21 +456,19 @@ public class GrammaticalParser {
                 AwaitStmt awaitStmt = new AwaitStmt();
                 grammarId++;
                 if (wordMap.get(grammarId).type.equals("IDENFR")){
-                    Ident ident = new Ident();
-                    //必须是thread类型的函数名
-                    ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
-                    awaitStmt.setIdent(ident);
-                    id2Object.put(treeId++, ident);
-
                     grammarId++;
                     if(wordMap.get(grammarId).type.equals("LPARENT")){
-                        grammarId++;
-                        while (!wordMap.get(grammarId).type.equals("RPARENT")) grammarId++;
-                        ident.setKind("PROC");
-                    }else{
+                        grammarId -= 2;
+                        FuncCall funcCall = parseFuncCall();
+                        awaitStmt.setAwaitItem(funcCall);
+                    }else {
                         grammarId--;
+                        Ident ident = new Ident();
+                        //必须是thread类型的函数名
+                        ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+                        awaitStmt.setAwaitItem(ident);
+                        id2Object.put(treeId++, ident);
                     }
-
                 }else{
                     grammarId--;
                     //error
@@ -1289,6 +1285,37 @@ public class GrammaticalParser {
         return ret;
     }
 
+    FuncCall parseFuncCall(){
+        grammarId++;
+        FuncCall ret = new FuncCall();
+        LexicalParser.Word word = wordMap.get(grammarId);
+        if (word.type.equals("IDENFR")) {
+            Ident ident = new Ident();
+            ident.setIdent(word.content, word.line);
+            grammarId++;
+            if (wordMap.get(grammarId).content.equals("(")) {
+                ret.setIdent(ident);
+                grammarId++;
+                if (!wordMap.get(grammarId).content.equals(")")) { //如果这里是x(中间没有参数表，但是缺少)怎么办 TODO
+                    grammarId--;
+                    FuncRParams funcRParams = parseFuncRParams();
+                    ret.setFuncRParams(funcRParams);
+                    grammarId++;
+                    if (!wordMap.get(grammarId).content.equals(")")) {
+                        grammarId--;
+                        //error
+                    }
+                } else {
+                    FuncRParams funcRParams = new FuncRParams();
+                    ret.setFuncRParams(funcRParams);
+                }
+            }
+        }
+        id2Object.put(treeId++, ret);
+
+        return ret;
+    }
+
     //UnaryExp → PrimaryExp | Ident '(' [FuncRParams] ')' | UnaryOp UnaryExp
     UnaryExp parseUnaryExp(){
         UnaryExp ret = new UnaryExp();
@@ -1299,23 +1326,8 @@ public class GrammaticalParser {
             ident.setIdent(word.content, word.line);
             grammarId++;
             if (wordMap.get(grammarId).content.equals("(")) {
-                FuncCall funcCall = new FuncCall();
-                funcCall.setIdent(ident);
-                grammarId++;
-                if (!wordMap.get(grammarId).content.equals(")")) { //如果这里是x(中间没有参数表，但是缺少)怎么办 TODO
-                    grammarId--;
-                    FuncRParams funcRParams = parseFuncRParams();
-                    funcCall.setFuncRParams(funcRParams);
-                    grammarId++;
-                    if (!wordMap.get(grammarId).content.equals(")")) {
-                        grammarId--;
-                        //error
-                    }
-                } else {
-                    FuncRParams funcRParams = new FuncRParams();
-                    funcCall.setFuncRParams(funcRParams);
-                }
-                id2Object.put(treeId++, funcCall);
+                grammarId -= 2;
+                FuncCall funcCall = parseFuncCall();
                 ret.setWrappedExp(funcCall);
             } else {
                 grammarId--;

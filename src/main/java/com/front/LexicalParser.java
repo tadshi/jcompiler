@@ -218,9 +218,21 @@ public class LexicalParser {
     String dealWithFormat() {
         StringBuilder str = new StringBuilder();
         char c = getChar();
-        while (!isQuotation(c)) {
-            str.append(c);
-            c = getChar();
+        while (!isQuotation(c) || c == '\\') {
+            if (c == '\\'){
+                c = getChar();
+                if(c == 'n') str.append('\n');
+                else if(c == 't') str.append('\t');
+                else if(c == 'r') str.append('\r');
+                else if(c == 'b') str.append('\b');
+                else if(c == 'f') str.append('\f');
+                else if(c == '"') str.append('\"');
+                else if(c == 27) str.append('\'');
+                c = getChar();
+            }else {
+                str.append(c);
+                c = getChar();
+            }
         }
         return "STRCON " + str;
     }

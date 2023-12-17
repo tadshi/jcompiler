@@ -5,7 +5,7 @@
 FuncDef -> ['thread'] 'def' Ident '('[FormParams]')' ['=>' Type] Block
 
 //只能在主函数中调用线程
-CallThreadStmt -> 'run' Ident ';'
+CallThreadStmt -> 'run' funcCall ';'
 
 //共享变量，前面加入'shared'关键字，只能在全局定义,int shared x的形式
 ParallelModifier -> 'shared'
@@ -16,8 +16,8 @@ ParallelType -> 'lock' | 'semaphore'
 ParallelDecl -> ParallelType VarDef {, VarDef}';'
 
 //关于锁
-AwaitStmt -> 'await' Ident ';'
-SignalStmt -> 'signal' Ident ';'
+AwaitStmt -> 'await' Ident | funcCall ';'
+SignalStmt -> 'signal' Ident';'
 ```
 ## 加入其他类型
 ```angular2html
