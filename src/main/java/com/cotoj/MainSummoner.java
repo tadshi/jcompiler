@@ -2,7 +2,17 @@ package com.cotoj;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.IntStream;
 
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -11,6 +21,7 @@ import com.cotoj.ExpSummoner.TypePair;
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DotExp;
 import com.cotoj.adaptor.FuncDefNode;
+import com.cotoj.adaptor.FuncParamNode;
 import com.cotoj.adaptor.MethodInvokeDotter;
 import com.cotoj.adaptor.Mimic;
 import com.cotoj.adaptor.SimpleFuncParamNode;
@@ -21,19 +32,25 @@ import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
+import com.cotoj.utils.OpcodeHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
+import com.cotoj.utils.ThreadHelper;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.*;
 
 public class MainSummoner extends ClassMaker implements Opcodes {
     private FuncDefNode currentFunc = null;
+    private MethodVisitor initVisitor;
+    private Map<String, ClassWriter> threads;
     
     public MainSummoner(File logFile) throws FileNotFoundException {
         super(logFile);
-        cv.visit(V17, ACC_PUBLIC + ACC_INTERFACE + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
+        this.threads = new HashMap<>();
+        cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
+        cv.visitField(ACC_PUBLIC + ACC_STATIC, "singleton", "Ljava/util/Map;", null, null).visitEnd();
     }
 
     private void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
@@ -266,6 +283,45 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         }
     }
 
+    public void summonThreadFunc(FuncDef funcDef, SymbolTable table) {
+        IdentEntry entry = table.addFuncDef(funcDef, new Owner.Class(ThreadHelper.getClassName(funcDef), false));
+        FuncDefNode funcDefNode = ((FuncDefNode)entry.getDef());
+        this.currentFunc = funcDefNode;
+        var pack = ThreadHelper.summonThreadClass(funcDefNode);
+        threads.put(funcDefNode.getName(), pack.cw());
+
+        ClassVisitor threadCv = pack.cv();
+        MethodVisitor threadMv = threadCv.visitMethod(ACC_PUBLIC, "<init>", ThreadHelper.getInitDescriptor(funcDefNode), null, null);
+        threadMv.visitCode();
+        threadMv.visitVarInsn(ALOAD, 0);
+        threadMv.visitInsn(DUP);
+        threadMv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        int index = 1;
+        for (FuncParamNode param : funcDefNode.getParams()) {
+            threadCv.visitField(ACC_PRIVATE, param.getName(), param.getDescriptor(), null, null).visitEnd();
+            threadMv.visitInsn(DUP);
+            threadMv.visitVarInsn(OpcodeHelper.toLoad(param), index);
+            threadMv.visitFieldInsn(PUTFIELD, ThreadHelper.getClassName(funcDefNode), param.getName(), param.getDescriptor());
+        }
+        threadMv.visitInsn(POP);
+        threadMv.visitInsn(RETURN);
+        threadMv.visitMaxs(3, funcDefNode.getParams().size() + 1);
+        threadMv.visitEnd();
+        MethodVisitor runMv = threadCv.visitMethod(Opcodes.ACC_PUBLIC, "run", "()V", null, null);
+        MethodHelper helper = new MethodHelper(funcDefNode);
+        table.pushContext();
+        table.loadFunctionParamsAsFields(funcDefNode.getName());
+        runMv.visitCode();
+        summonBlock(funcDef.getBlock(), runMv, table, helper);
+        for (IdentEntry popEntry : table.popContext()) {
+            if (popEntry.getDef().getOwner() instanceof Owner.Local) {
+                helper.releaseLocal(popEntry.getDef());
+            }
+        }
+        helper.visitMaxs(runMv);
+        runMv.visitEnd();
+    }
+
     public void summonFunc(FuncDef funcDef, SymbolTable table) {
         IdentEntry entry = table.addFuncDef(funcDef, Owner.builtinMain());
         FuncDefNode funcDefNode = ((FuncDefNode)entry.getDef());
@@ -276,11 +332,6 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         MethodHelper helper = new MethodHelper(funcDefNode);
         mv.visitCode();
         summonBlock(funcDef.getBlock(), mv, table, helper);
-        // if (funcDefNode.getReturnType() instanceof ReturnType.Void) {
-        //     mv.visitInsn(RETURN);
-        // } else {
-            // mv.visitInsn(NOP);
-        // }
         for (IdentEntry popEntry : table.popContext()) {
             helper.releaseLocal(popEntry.getDef());
         }
@@ -293,10 +344,25 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PUBLIC, "main", "([Ljava/lang/String;)V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", "__main", "([Ljava/lang/String;)I", true);
+        mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", "__main", "([Ljava/lang/String;)I", false);
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
         super.masterUp();
+    }
+
+    @Override
+    @Deprecated
+    public void save(Path path) throws IOException {
+        save(path, path.resolve("../../threads"));
+    }
+    public void save(Path mainPath, Path subsPath) throws IOException {
+        super.save(mainPath);
+        for (var entry : threads.entrySet()) {
+            File outputFile = subsPath.resolve("Thread" + entry.getKey() + ".class").toFile();
+            OutputStream tStream = new PrintStream(outputFile);
+            tStream.write(entry.getValue().toByteArray());
+            tStream.close();
+        }
     }
 }

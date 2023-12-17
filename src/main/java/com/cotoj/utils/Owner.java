@@ -12,7 +12,7 @@ public sealed interface Owner {
     }
 
     public static Owner builtinMain() {
-        return new Static("com/oto/Main", true);
+        return new Static("com/oto/Main", false);
     }
     
     // public record ExVarLib(String exVarOwner, String exVarType, 

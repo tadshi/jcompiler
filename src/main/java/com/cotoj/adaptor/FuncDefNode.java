@@ -12,11 +12,13 @@ import com.front.cerror.ErrorType;
 public final class FuncDefNode extends DefNode {
     private ReturnType returnType;
     private List<FuncParamNode> params;
+    private boolean isThread;
 
-    public FuncDefNode(String name, Owner owner, ReturnType returnType) {
+    public FuncDefNode(String name, Owner owner, ReturnType returnType, boolean isThread) {
         super(name, owner, null); // This is on purpose. Returntype may not be real Type...
         this.returnType = returnType;
         this.params = new ArrayList<>();
+        this.isThread = isThread;
     }
 
     public void addParam(FuncParamNode param) {
@@ -38,6 +40,10 @@ public final class FuncDefNode extends DefNode {
 
     public ReturnType getReturnType() {
         return returnType;
+    }
+
+    public boolean isThread() {
+        return isThread;
     }
 
     @Override

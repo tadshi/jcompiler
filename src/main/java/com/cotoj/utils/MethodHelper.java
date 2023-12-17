@@ -63,6 +63,9 @@ public class MethodHelper {
             localStack.push(param.toDef());
             ++maxLocal;
         }
+        if (node.isThread()) {
+            ++maxLocal;
+        }
     }
     
     public void reportUseOpStack(int size, String type) {

@@ -1,12 +1,12 @@
-void fun1() 
+thread def fun1()
 {
     printf("Hello, World!");
 }
-void fun2(int ver)
+thread def fun2(int ver)
 {
     printf("Jcompiler ver 0.%d", ver);
 }
-int fun3(int a, int b)
+def fun3(int a, int b) => int
 {
     if (a > b)
     {
@@ -19,28 +19,28 @@ int fun3(int a, int b)
     return a;
 }
 
-int gcd(int a, int b)
+def gcd(int a, int b) => int
 {
-    if (a % b == 0)
+    if (b == 1 || a % b == 0)
     {
         return b;
     }
     return gcd(b, a % b);
 }
 
-int lcm(int a, int b)
+def lcm(int a, int b) => int
 {
     int gcds = gcd(a, b);
     return a * b / gcds;
 }
 
-void fun4(int a, int b, int c)
+def fun4(int a, int b, int c)
 {
     int d = (a + b - c) * a;
     printf("%d\n", d);
 }
 
-int fun5(int a)
+def fun5(int a) => int
 {
     if (a == 1)
     {
@@ -48,16 +48,33 @@ int fun5(int a)
     }
     else
     {
-        return 1;
+        if (a == 2) {
+            return 1;
+        }
     }
     return fun5(a - 1) + fun5(a - 2);
 }
-int main()
+def main()
 {
-    run func3;
+    // run func3;
 
-    lock x;
-    unlock x;
-
+    // lock x;
+    // unlock x;
+    fun1();
+    fun2(6);
+    printf("%d\n", fun3(2, fun3(3, 6)));
+    int a, b;
+    printf("scanf a, b to get gcd and lcm\n");
+    a = getint();
+    b = getint();
+    printf("gcd is %d\n", gcd(a, b));
+    printf("lcm is %d\n", lcm(a, b));
+    int temp;
+    temp = getint();
+    fun4(temp, 3, 10);
+    printf("scanf a to get Fibonacci\n");
+    int fib;
+    fib = getint();
+    printf("fib is %d\n", fun5(fib));
     return 0;
 }
