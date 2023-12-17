@@ -8,8 +8,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.IntStream;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -19,6 +17,7 @@ import org.objectweb.asm.Opcodes;
 
 import com.cotoj.ExpSummoner.TypePair;
 import com.cotoj.adaptor.ArrayDefNode;
+import com.cotoj.adaptor.DefNode;
 import com.cotoj.adaptor.DotExp;
 import com.cotoj.adaptor.FuncDefNode;
 import com.cotoj.adaptor.FuncParamNode;
@@ -37,20 +36,19 @@ import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
 import com.cotoj.utils.ThreadHelper;
+import com.cotoj.utils.ReturnType.JavaClass;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.*;
 
 public class MainSummoner extends ClassMaker implements Opcodes {
     private FuncDefNode currentFunc = null;
-    private MethodVisitor initVisitor;
     private Map<String, ClassWriter> threads;
     
     public MainSummoner(File logFile) throws FileNotFoundException {
         super(logFile);
         this.threads = new HashMap<>();
         cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
-        cv.visitField(ACC_PUBLIC + ACC_STATIC, "singleton", "Ljava/util/Map;", null, null).visitEnd();
     }
 
     private void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
@@ -214,6 +212,54 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 ExpSummoner.summonDotExp(dotExp, mv, helper, table);
                 mv.visitInsn(POP);
                 helper.reportPopOpStack(1);
+            }
+            case AwaitStmt awaitStmt -> {
+                IdentEntry entry = table.getEntry(awaitStmt.getIdent().getName(), SymbolType.VARIABLE);
+                if (entry != null) {
+                    DefNode paraVarDef = entry.getDef();
+                    if (!(paraVarDef.getType() instanceof JavaClass)) {
+                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "This is not a paralle primitive!");
+                    }
+                    JavaClass paraType = ((JavaClass)paraVarDef.getType());
+                    mv.visitFieldInsn(GETSTATIC, Owner.builtinMain().toString(), paraVarDef.getName(), paraType.toDescriptor());
+                    if (JavaType.LOCK.toTypeString().equals(paraType.toTypeString())) {
+                        mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LOCK_INT.toTypeString(), "lock", "()V", true);
+                    } else if (JavaType.SEM.toTypeString().equals(paraType.toTypeString())) {
+                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.SEM.toTypeString(), "acquire", "()V", false);
+                    }
+                    helper.reportUsedStack(1);
+                    break;
+                }
+                entry = table.getEntry(awaitStmt.getIdent().getName(), SymbolType.FUNCTION);
+                if (entry == null) {
+                    throw new CError(ErrorType.IDENT_NOT_EXISTS, "Cannot find parallel things match" + awaitStmt.getIdent().getName());
+                }
+                FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
+                if (!funcDef.isThread()) {
+                    throw new CError(ErrorType.NOT_A_THREAD, "This is not a thread function!");
+                }
+                // mv.visitTypeInsn(NEW, ThreadHelper.getClassName(funcDef));
+                // mv.visitInsn(DUP);
+                // TODO: Mimic a start statement and send it to ExpSummoner and at last join it
+            }
+            case SignalStmt signalStmt -> {
+                IdentEntry entry = table.getEntry(signalStmt.getIdent().getName(), SymbolType.VARIABLE);
+                if (entry == null) {
+                    throw new CError(ErrorType.IDENT_NOT_EXISTS, signalStmt.getIdent().getName());
+                }
+                DefNode paraVarDef = entry.getDef();
+                if (!(paraVarDef.getType() instanceof JavaClass)) {
+                    throw new CError(ErrorType.UNEXPECTED_TOKEN, "This is not a paralle primitive!");
+                }
+                JavaClass paraType = ((JavaClass)paraVarDef.getType());
+                mv.visitFieldInsn(GETSTATIC, Owner.builtinMain().toString(), paraVarDef.getName(), paraType.toDescriptor());
+                if (JavaType.LOCK.toTypeString().equals(paraType.toTypeString())) {
+                    mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LOCK_INT.toTypeString(), "unlock", "()V", true);
+                } else if (JavaType.SEM.toTypeString().equals(paraType.toTypeString())) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.SEM.toTypeString(), "release", "()V", false);
+                }
+                helper.reportUsedStack(1);
+                break;
             }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }

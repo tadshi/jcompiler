@@ -22,7 +22,6 @@ import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
-import com.cotoj.utils.ThreadHelper;
 import com.front.cerror.CError;
 import com.front.gunit.ConstDef;
 import com.front.gunit.ConstExp;

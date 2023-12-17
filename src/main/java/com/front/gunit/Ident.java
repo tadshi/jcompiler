@@ -1,7 +1,7 @@
 package com.front.gunit;
 public class Ident extends ObjectClass{
-    int isShared = 0;
-    int isConst = 0;
+    boolean isShared = false;
+    boolean isConst = false;
     //PROC/PARA/VAR
     String kind;
     //INTTK/FLOATTK/BOOLTK/STRINGTK/LISTTK/DICTTK
@@ -19,9 +19,9 @@ public class Ident extends ObjectClass{
         this.type = type;
     }
 
-    public void setIsConst(){this.isConst = 1;}
+    public void setIsConst(){this.isConst = true;}
 
-    public void setShared(){ this.isShared = 1;}
+    public void setShared(){ this.isShared = true;}
 
     public void setIdent(String name, int line){
         this.name = name;
@@ -56,7 +56,7 @@ public class Ident extends ObjectClass{
         return type;
     }
 
-    public int getShare() {return isShared;}
+    public boolean isShared() {return isShared;}
 
-    public int getIsConst() {return isConst;}
+    public boolean isConst() {return isConst;}
 }

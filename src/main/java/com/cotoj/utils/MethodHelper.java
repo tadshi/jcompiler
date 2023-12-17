@@ -171,6 +171,7 @@ public class MethodHelper {
     private Object convertToASM(String descString) {
         return switch (descString) {
             case "I" -> Opcodes.INTEGER;
+            case null -> Opcodes.UNINITIALIZED_THIS;
             default -> descString;
         };
     }

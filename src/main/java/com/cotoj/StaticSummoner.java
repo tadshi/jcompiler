@@ -51,15 +51,19 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
     public void parseStaticDef(VarDef varDef, SymbolTable table) {
         IdentEntry entry = table.addVarDef(varDef);
         DefNode def = entry.getDef();
+        int access = ACC_PUBLIC + ACC_STATIC;
+        if (varDef.getIdent().isShared()) {
+            access += ACC_VOLATILE;
+        }
         switch (def) {
             case ArrayDefNode arrayDef -> {
-                cv.visitField(ACC_PUBLIC + ACC_STATIC, entry.getName(), arrayDef.getDescriptor(), null, null).visitEnd();
+                cv.visitField(access, entry.getName(), arrayDef.getDescriptor(), null, null).visitEnd();
                 ArrayInitHelper.buildArray(arrayDef, varDef, initVisitor, initHelper, table);
                 initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", arrayDef.getName(), arrayDef.getDescriptor());
                 initHelper.reportPopOpStack(1);
             }
             case VarDefNode _varDef -> {
-                cv.visitField(ACC_PUBLIC + ACC_STATIC, entry.getName(), _varDef.getDescriptor(), null, null).visitEnd();
+                cv.visitField(access, entry.getName(), _varDef.getDescriptor(), null, null).visitEnd();
                 InitVal initVal = varDef.getInitVal();
                 if (initVal != null) {
                     if (!(initVal.getInitForm() instanceof Exp)) {
@@ -94,7 +98,41 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
     }
 
     public void parseStaticParallelDef(VarDef varDef, ParallelType pType, SymbolTable table) {
-        
+        IdentEntry entry = table.addVarDef(varDef);
+        DefNode def = entry.getDef();
+        ReturnType innerType = def.getType();
+        cv.visitField(ACC_PUBLIC + ACC_STATIC, def.getName(), innerType.toDescriptor(), null, null);
+        switch (pType.getName()) {
+            case "LOCKTK" -> {
+                initVisitor.visitTypeInsn(NEW, innerType.toTypeString());
+                initVisitor.visitInsn(DUP);
+                initVisitor.visitMethodInsn(INVOKESPECIAL, innerType.toTypeString(), def.getName(), "()V", false);
+                initVisitor.visitFieldInsn(PUTSTATIC, Owner.builtinStatic().className(), def.getName(), innerType.toDescriptor());
+                initHelper.reportUsedStack(2);
+            }
+            case "SEMAPHORETK" -> {
+                initVisitor.visitTypeInsn(NEW, innerType.toTypeString());
+                initVisitor.visitInsn(DUP);
+                initHelper.reportUseOpStack(2, null);
+                if (varDef.getInitVal() != null) {
+                    InitVal initVal = varDef.getInitVal();
+                    if (!(initVal.getInitForm() instanceof Exp)) {
+                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "Expect a exp");
+                    }
+                    ReturnType rType = ExpSummoner.summonExp(((Exp)initVal.getInitForm()), initVisitor, initHelper, table);
+                    if (!(rType instanceof ReturnType.Integer)) {
+                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "Init value for a sem must be a int");
+                    }
+                } else {
+                    initVisitor.visitInsn(ICONST_0);
+                    initHelper.reportUseOpStack(1, "I");
+                }
+                initVisitor.visitMethodInsn(INVOKESPECIAL, innerType.toTypeString(), "<init>", "(I)V", false);
+                initVisitor.visitFieldInsn(PUTSTATIC, Owner.builtinMain().className(), def.getName(), innerType.toDescriptor());
+                initHelper.reportPopOpStack(3);
+            }
+            default -> throw new RuntimeException(def.getType() + " is not a parallel type.");
+        }
     }
     
     @Override

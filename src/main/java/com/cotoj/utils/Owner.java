@@ -7,11 +7,11 @@ public sealed interface Owner {
 
     public record Class(String className, boolean isInterface) implements Owner {}
 
-    public static Owner builtinStatic() {
+    public static Static builtinStatic() {
         return new Static("com/oto/Static", false);
     }
 
-    public static Owner builtinMain() {
+    public static Static builtinMain() {
         return new Static("com/oto/Main", false);
     }
     

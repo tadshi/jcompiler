@@ -1,3 +1,5 @@
+lock a,b;
+semaphore c = 10;
 thread def fun1()
 {
     printf("Hello, World!");
