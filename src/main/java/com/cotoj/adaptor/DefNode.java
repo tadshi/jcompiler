@@ -7,7 +7,7 @@ import com.cotoj.utils.ReturnType;
 
 public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNode {
     private final String name;
-    private final Owner owner;
+    private Owner owner;
     private final ReturnType type;
 
     public DefNode (String name, Owner owner, ReturnType type) {
@@ -26,6 +26,10 @@ public sealed abstract class DefNode permits VarDefNode, ArrayDefNode, FuncDefNo
 
     public ReturnType getType() {
         return type;
+    }
+
+    public void setOwner(Owner owner) {
+        this.owner = owner;
     }
 
     public abstract String getDescriptor();

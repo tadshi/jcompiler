@@ -52,7 +52,11 @@ public final class JavaBytecodeSummoner {
         }
         staticSummoner.masterUp();
         for (FuncDef funcDef : compUnit.getFuncDefs()) {
-            mainSummoner.summonFunc(funcDef, symbolTable);
+            if (funcDef.isThread()) {
+                mainSummoner.summonThreadFunc(funcDef, symbolTable);
+            } else {
+                mainSummoner.summonFunc(funcDef, symbolTable);
+            }
         }
         mainSummoner.summonFunc(Mimic.mimicFuncDef(compUnit.getMainFuncDef()), symbolTable);
         mainSummoner.masterUp();
@@ -63,8 +67,9 @@ public final class JavaBytecodeSummoner {
         try {
             Path classFileFolder = outputFolder.resolve("com/oto");
             Files.createDirectories(outputFolder.resolve("com/oto"));
+            Files.createDirectories(outputFolder.resolve("com/threads"));
             staticSummoner.save(classFileFolder.resolve("Static.class"));
-            mainSummoner.save(classFileFolder.resolve("Main.class"));
+            mainSummoner.save(classFileFolder.resolve("Main.class"), outputFolder.resolve("com/threads"));
         } catch(IOException err) {
             err.printStackTrace();
             System.err.println("Fail to save classfiles.");

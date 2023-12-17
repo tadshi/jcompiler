@@ -38,7 +38,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         // initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
         initHelper = new MethodHelper("com/oto/Static");
 
-        cv.visitField(ACC_PUBLIC + ACC_STATIC, "__jScanner", "Ljava/util/Scanner;", null, null);
+        cv.visitField(ACC_PUBLIC + ACC_STATIC, "__jScanner", "Ljava/util/Scanner;", null, null).visitEnd();
         initVisitor.visitTypeInsn(NEW, "java/util/Scanner");
         initVisitor.visitInsn(DUP);
         initVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "in", "Ljava/io/InputStream;");

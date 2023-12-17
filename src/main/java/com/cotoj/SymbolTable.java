@@ -22,6 +22,7 @@ import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
+import com.cotoj.utils.ThreadHelper;
 import com.front.cerror.CError;
 import com.front.gunit.ConstDef;
 import com.front.gunit.ConstExp;
@@ -171,7 +172,7 @@ public class SymbolTable {
 
     public IdentEntry addFuncDef(FuncDef funcDef, Owner owner) {
         Ident ident = funcDef.getIdent();
-        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()));
+        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()), funcDef.isThread());
         FuncFParams funcFParams = funcDef.getFuncFParams();
         if (funcFParams != null) {
             for (FuncFParam funcFParam : funcFParams.getFuncFParams()) {
@@ -203,6 +204,23 @@ public class SymbolTable {
         for (FuncParamNode param: funcDef.getParams()) {
             addEntry(new IdentEntry(param.toDef(), getLevel(), true));
         }
+    }
+
+    public void loadFunctionParamsAsFields(String funcName) {
+        IdentEntry entry = getEntry(funcName, SymbolType.FUNCTION);
+        if (!(entry.getDef() instanceof FuncDefNode)) {
+            throw new RuntimeException("No, this is not a function.");
+        }
+        FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
+        if (!funcDef.isThread()) {
+            throw new RuntimeException("No, this is not a thread function.");
+        }
+        for (FuncParamNode param: funcDef.getParams()) {
+            DefNode def = param.toDef();
+            def.setOwner(funcDef.getOwner());
+            addEntry(new IdentEntry(def, getLevel(), true));
+        }
+
     }
 
     public void registerLoop(Label loopHead, Label loopEnd) {

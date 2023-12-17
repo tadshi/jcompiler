@@ -24,6 +24,7 @@ import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
+import com.cotoj.utils.ThreadHelper;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.*;
@@ -121,6 +122,10 @@ public interface ExpSummoner extends Opcodes {
                     switch (owner) {
                         case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
                         case Owner.Local() -> mv.visitVarInsn(ILOAD, helper.getVarIndex(varDef));
+                        case Owner.Class(String clazz, boolean isInt) -> {
+                            mv.visitVarInsn(ALOAD, 0);
+                            mv.visitFieldInsn(GETFIELD, clazz, varDef.getName(), varDef.getDescriptor());
+                        }
                         default -> throw new RuntimeException("No, we cannot deal with" + owner);
                     }
                 }
@@ -135,7 +140,11 @@ public interface ExpSummoner extends Opcodes {
                 Owner owner = arrayDef.getOwner();
                 switch (owner) {
                     case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), arrayDef.getDescriptor());
-                    case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));             
+                    case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));   
+                    case Owner.Class(String clazz, boolean isInt) -> {
+                        mv.visitVarInsn(ALOAD, 0);
+                        mv.visitFieldInsn(GETFIELD, clazz, arrayDef.getName(), arrayDef.getDescriptor());
+                    }          
                     default -> throw new RuntimeException("No, we cannot deal with" + owner);
                 }
                 helper.reportUseOpStack(1, arrayDef.getTypeString());
@@ -202,9 +211,19 @@ public interface ExpSummoner extends Opcodes {
                 }
                 FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
                 List<Exp> rparams = funcCall.getFuncRParams().getExps();
-                loadFuncParam(funcDef.getParams(), rparams, mv, helper, table);
                 switch (funcDef.getOwner()) {
-                    case Owner.Static(String clazz, boolean isInt) -> {mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);}
+                    case Owner.Static(String clazz, boolean isInt) -> {
+                        loadFuncParam(funcDef.getParams(), rparams, mv, helper, table);
+                        mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);
+                    }
+                    case Owner.Class(String clazz, boolean isInt) -> {
+                        mv.visitTypeInsn(NEW, ThreadHelper.getClassName(funcDef));
+                        mv.visitInsn(DUP);
+                        loadFuncParam(funcDef.getParams(), rparams, mv, helper, table);
+                        mv.visitMethodInsn(INVOKESPECIAL, ThreadHelper.getClassName(funcDef), "<init>", 
+                                            ThreadHelper.getInitDescriptor(funcDef), isInt);
+                        mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Runnable", "run", "()V", true);
+                    }
                     default -> throw new RuntimeException("A function cannot be possessed by " + funcDef.getOwner());
                 }
                 helper.reportPopOpStack(rparams.size());
