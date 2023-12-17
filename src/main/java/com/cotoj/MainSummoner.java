@@ -7,6 +7,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.cotoj.ExpSummoner.TypePair;
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DotExp;
 import com.cotoj.adaptor.FuncDefNode;
@@ -99,9 +100,13 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             case IfStmt ifStmt -> {
                 Label start = new Label();
                 Label else_stmt = new Label();
-                ExpSummoner.summonLOrExp(ifStmt.getCond().getlOrExp(), mv, helper, table, start);
+                TypePair pair = ExpSummoner.summonLOrExp(ifStmt.getCond().getlOrExp(), mv, helper, table, start);
                 mv.visitJumpInsn(IFEQ, else_stmt);
                 helper.reportPopOpStack(1);
+                if (pair.used()) {
+                    mv.visitLabel(start);
+                    helper.visitFrame(mv);
+                }
                 summonStmt(ifStmt.getStmt().getWrappedStmt(), mv, table, helper);
                 if (ifStmt.getElseStmt() == null) {
                     mv.visitLabel(else_stmt);

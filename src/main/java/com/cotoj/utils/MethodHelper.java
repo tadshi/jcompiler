@@ -107,6 +107,13 @@ public class MethodHelper {
         }
     }
 
+    public int reportUseTempLocal() {
+        if (localMap.size() + 1 > maxLocal) {
+            maxLocal = localMap.size() + 1;
+        }
+        return localMap.size();
+    }
+
     public void releaseLocal(DefNode def) {
         if (!(def.equals(localStack.peek()))) {
             throw new RuntimeException("Cannot pop non-top local!");

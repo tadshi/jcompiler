@@ -325,23 +325,24 @@ public interface ExpSummoner extends Opcodes {
         if (eqExp.getEqExp() == null) {
             return summonRelExp(eqExp.getRelExp(), mv, helper, table);
         } else {
+            Label label = new Label();
+            mv.visitInsn(ICONST_1);
+            helper.reportUseOpStack(1, "I");
             ReturnType lType = summonEqxp(eqExp.getEqExp(), mv, helper, table);
             ReturnType rType = summonRelExp(eqExp.getRelExp(), mv, helper, table);
             if (!lType.getClass().equals(rType.getClass())) {
                 throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lType + ", right " + rType);
             }
-            mv.visitInsn(IXOR);
             switch(eqExp.getCh()) {
-                case "==" -> {
-                    mv.visitInsn(INEG);
-                    mv.visitInsn(ICONST_1);
-                    mv.visitInsn(ISUB);
-                }
-                case "!=" -> {}
+                case "==" -> mv.visitJumpInsn(IF_ICMPEQ, label);
+                case "!=" -> mv.visitJumpInsn(IF_ICMPNE, label);
                 default -> throw new RuntimeException("Not sure what is " + eqExp.getCh());
             }
+            mv.visitInsn(POP);
+            mv.visitInsn(ICONST_0);
             helper.reportPopOpStack(2);
-            helper.reportUseOpStack(1, "I");
+            helper.visitFrame(mv);
+            mv.visitLabel(label);
             return new ReturnType.Integer();
         }
     }
