@@ -1,9 +1,9 @@
 package com.front.gunit;
 
 public class CallThreadStmt extends ObjectClass implements StmtTrait{
-    private Ident ident;
+    private FuncCall funcCall;
 
-    public void setIdent(Ident ident){ this.ident = ident;}
+    public void setFuncCall(FuncCall funcCall){ this.funcCall = funcCall;}
 
-    public Ident getIdent(){ return ident;}
+    public FuncCall getFuncCall(){ return funcCall;}
 }
