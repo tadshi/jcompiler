@@ -109,6 +109,7 @@ public class LexicalParser {
         if (ch == ']') return "RBRACK ]";
         if (ch == '{') return "LBRACE {";
         if (ch == '}') return "RBRACE }";
+        if (ch == ':') return "COLON :";
         return "";
     }
     
@@ -160,15 +161,18 @@ public class LexicalParser {
     }
     
     String dealWithDigit(char ch) {
-        int num = 0;
+        StringBuilder str = new StringBuilder();
+        boolean floatFlag = false;
         //num = ch - '0';
         char c = ch;
-        while (isDigit(c)) {
-            num = num * 10 + c - '0';
+        while (isDigit(c) || c == '.') {
+            if (c == '.') floatFlag = true;
+            str.append(c);
             c = getChar();
         }
         index--; //回退
-        return "INTCON " + Integer.toString(num);
+        if(floatFlag) return "FLOATCON " + str;
+        return "INTCON " + str;
     }
     
     String dealWithLetter(char ch) {
@@ -212,6 +216,8 @@ public class LexicalParser {
         if (str.equals("semaphore")) return "SEMAPHORETK";
         if (str.equals("await")) return "AWAITTK";
         if (str.equals("signal")) return "SIGNALTK";
+        if (str.equals("true")) return "TRUECON";
+        if (str.equals("false")) return "FALSECON";
         return "";
     }
     

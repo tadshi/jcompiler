@@ -21,7 +21,25 @@ SignalStmt -> 'signal' Ident';'
 ```
 ## 加入其他类型
 ```angular2html
-Type -> 'int' | 'float' | 'bool' | 'list' | 'dict'
+Type -> 'int' | 'float' | 'bool' | 'string' | 'list''<'Type'>' | 'dict''<'Type',Type'>'
+Number ::= [+|-][0-9]+
+Float ::= [+|-][0-9]+'.'[0-9]+
+Bool ::= 'true' | 'false'
+
+String ::= '"' characters '"'
+characters ::= character*
+character ::= letter | digit | special-char
+letter ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+digit ::= '0' | '1' | ... | '9'
+special-char ::= any printable ASCII character except '"' (double quote)
+
+InitList ::= '['{litem}{',' litem}']'
+litem ::= int | float | bool | string  (same type)
+
+InitDict ::= '{'{pair}{','pair}'}'
+pair ::= key ':' value
+key ::= int | float | string
+value ::= int | float | bool | string  (keys are the same type, so as values)
 ```
 ## 函数定义和函数闭包
 ```angular2html

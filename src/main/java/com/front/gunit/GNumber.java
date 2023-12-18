@@ -6,6 +6,11 @@ public class GNumber extends ObjectClass{
         this.number = number;
     }
 
+    @Override
+    public String toString() {
+        return "INTTK";
+    }
+
     public int getNumber() {
         return number;
     }

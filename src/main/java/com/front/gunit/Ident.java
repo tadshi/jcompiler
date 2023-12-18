@@ -4,8 +4,12 @@ public class Ident extends ObjectClass{
     boolean isConst = false;
     //PROC/PARA/VAR
     String kind;
-    //INTTK/FLOATTK/BOOLTK/STRINGTK/LISTTK/DICTTK
+    //INTTK/FLOATTK/BOOLTK/STRINGTK/LISTTK/DICTTK/LOCKTK/SEMAPHORETK
     String type;
+
+    //存着对象
+    ObjectClass dataType;
+
     String name;
     int line;
     int dimension;
@@ -27,6 +31,8 @@ public class Ident extends ObjectClass{
         this.name = name;
         this.line = line;
     }
+
+    public void setDataType(ObjectClass dataType){this.dataType = dataType;}
 
     public void setKind(String kind){this.kind = kind;}
 
@@ -59,4 +65,6 @@ public class Ident extends ObjectClass{
     public boolean isShared() {return isShared;}
 
     public boolean isConst() {return isConst;}
+
+    public ObjectClass getDataType() {return dataType;}
 }
