@@ -141,7 +141,6 @@ public class GrammaticalParser {
             dataType = new GSemaphore();
         }
         parallelType.setDataType(dataType);
-        parallelType.setName(dataType.toString());
         ret.setParallelType(parallelType);
 
         VarDef varDef = parseVarDef(false, parallelType.getDataType());

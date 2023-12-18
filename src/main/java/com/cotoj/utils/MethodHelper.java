@@ -58,12 +58,16 @@ public class MethodHelper {
         localShift = 0;
         localCorrcupted = false;
         appendLocals = new ArrayList<>();
+        if (node.isThread()) {
+            String className = ThreadHelper.getClassName(node);
+            VarDefNode thisDef = new VarDefNode("__jthis", new Owner.Class(className, false), new ReturnType.JavaClass(className), false);
+            localMap.put(thisDef, 0);
+            localStack.push(thisDef);
+            ++maxLocal;
+        }
         for (FuncParamNode param : node.getParams()) {
             localMap.put(param.toDef(), localStack.size());
             localStack.push(param.toDef());
-            ++maxLocal;
-        }
-        if (node.isThread()) {
             ++maxLocal;
         }
     }
@@ -161,8 +165,8 @@ public class MethodHelper {
 
     private void visitFullFrame(MethodVisitor mv) {
         Object[] localObjects = localStack.stream().map(def -> def == null ? thisType : switch(def) {
-            case VarDefNode varDef -> varDef.getDescriptor();
-            case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
+            case VarDefNode varDef -> varDef.getTypeString();
+            case ArrayDefNode arrayDef -> arrayDef.getTypeString();
             case FuncDefNode funcDef -> throw new RuntimeException("Why there is a function in the stack?");
         }).map(desc -> convertToASM(desc)).toArray();
         mv.visitFrame(Opcodes.F_FULL, localMap.size(), localObjects, operandStack.size(), operandStack.toArray());

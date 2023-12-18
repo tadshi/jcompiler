@@ -214,33 +214,47 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 helper.reportPopOpStack(1);
             }
             case AwaitStmt awaitStmt -> {
-                IdentEntry entry = table.getEntry(awaitStmt.getIdent().getName(), SymbolType.VARIABLE);
-                if (entry != null) {
-                    DefNode paraVarDef = entry.getDef();
-                    if (!(paraVarDef.getType() instanceof JavaClass)) {
-                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "This is not a paralle primitive!");
+                switch (awaitStmt.getAwaitItem()) {
+                    case Ident ident -> {
+                        IdentEntry entry = table.getEntry(ident.getName(), SymbolType.VARIABLE);
+                        if (entry == null) {
+                            throw new CError(ErrorType.IDENT_NOT_EXISTS, "Parallel premitive " + ident.getName() + " do not exists.");
+                        }
+                        DefNode paraVarDef = entry.getDef();
+                        if (!(paraVarDef.getType() instanceof JavaClass)) {
+                            throw new CError(ErrorType.UNEXPECTED_TOKEN, "This is not a paralle primitive!");
+                        }
+                        JavaClass paraType = ((JavaClass)paraVarDef.getType());
+                        mv.visitFieldInsn(GETSTATIC, Owner.builtinStatic().className(), paraVarDef.getName(), paraType.toDescriptor());
+                        if (JavaType.LOCK.toTypeString().equals(paraType.toTypeString())) {
+                            mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LOCK_INT.toTypeString(), "lock", "()V", true);
+                        } else if (JavaType.SEM.toTypeString().equals(paraType.toTypeString())) {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.SEM.toTypeString(), "acquire", "()V", false);
+                        }
+                        helper.reportUsedStack(1);
+                        break;
                     }
-                    JavaClass paraType = ((JavaClass)paraVarDef.getType());
-                    mv.visitFieldInsn(GETSTATIC, Owner.builtinMain().toString(), paraVarDef.getName(), paraType.toDescriptor());
-                    if (JavaType.LOCK.toTypeString().equals(paraType.toTypeString())) {
-                        mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LOCK_INT.toTypeString(), "lock", "()V", true);
-                    } else if (JavaType.SEM.toTypeString().equals(paraType.toTypeString())) {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.SEM.toTypeString(), "acquire", "()V", false);
+                    case FuncCall funcCall -> {
+                        IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.FUNCTION);
+                        if (entry == null) {
+                            throw new CError(ErrorType.IDENT_NOT_EXISTS, "Cannot find parallel function named" + funcCall.getIdent().getName());
+                        }
+                        FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
+                        if (!funcDef.isThread()) {
+                            throw new CError(ErrorType.NOT_A_THREAD, "This is not a thread function!");
+                        }
+                        mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
+                        mv.visitInsn(DUP);
+                        helper.reportUseOpStack(2, null);
+                        ExpSummoner.summonThread(funcCall, mv, helper, table);
+                        mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)" + JavaType.THREAD.toDescriptor(), false);
+                        mv.visitInsn(DUP);
+                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
+                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "join", "()V", false);
+                        helper.reportPopOpStack(3);
                     }
-                    helper.reportUsedStack(1);
-                    break;
+                    default -> throw new RuntimeException("What's this awaitStmt?");
                 }
-                entry = table.getEntry(awaitStmt.getIdent().getName(), SymbolType.FUNCTION);
-                if (entry == null) {
-                    throw new CError(ErrorType.IDENT_NOT_EXISTS, "Cannot find parallel things match" + awaitStmt.getIdent().getName());
-                }
-                FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
-                if (!funcDef.isThread()) {
-                    throw new CError(ErrorType.NOT_A_THREAD, "This is not a thread function!");
-                }
-                // mv.visitTypeInsn(NEW, ThreadHelper.getClassName(funcDef));
-                // mv.visitInsn(DUP);
-                // TODO: Mimic a start statement and send it to ExpSummoner and at last join it
             }
             case SignalStmt signalStmt -> {
                 IdentEntry entry = table.getEntry(signalStmt.getIdent().getName(), SymbolType.VARIABLE);
@@ -252,7 +266,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     throw new CError(ErrorType.UNEXPECTED_TOKEN, "This is not a paralle primitive!");
                 }
                 JavaClass paraType = ((JavaClass)paraVarDef.getType());
-                mv.visitFieldInsn(GETSTATIC, Owner.builtinMain().toString(), paraVarDef.getName(), paraType.toDescriptor());
+                mv.visitFieldInsn(GETSTATIC, Owner.builtinStatic().className(), paraVarDef.getName(), paraType.toDescriptor());
                 if (JavaType.LOCK.toTypeString().equals(paraType.toTypeString())) {
                     mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LOCK_INT.toTypeString(), "unlock", "()V", true);
                 } else if (JavaType.SEM.toTypeString().equals(paraType.toTypeString())) {
@@ -260,6 +274,16 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 }
                 helper.reportUsedStack(1);
                 break;
+            }
+            case CallThreadStmt runStmt -> {
+                FuncCall funcCall = runStmt.getFuncCall();
+                mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
+                mv.visitInsn(DUP);
+                helper.reportUseOpStack(2, null);
+                ExpSummoner.summonThread(funcCall, mv, helper, table);
+                mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)V", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
+                helper.reportPopOpStack(3);
             }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }

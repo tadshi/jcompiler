@@ -7,7 +7,7 @@ public class AwaitStmt extends ObjectClass implements StmtTrait{
 
     public void setAwaitItem(ObjectClass awaitItem){ this.awaitItem = awaitItem;}
 
-    public void setIdent(Ident ident){this.ident = ident;}
+    // public void setIdent(Ident ident){this.ident = ident;}
 
     public ObjectClass getAwaitItem(){ return awaitItem;}
 

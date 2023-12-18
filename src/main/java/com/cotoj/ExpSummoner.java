@@ -217,10 +217,10 @@ public interface ExpSummoner extends Opcodes {
                         mv.visitMethodInsn(INVOKESTATIC, clazz, funcDef.getName(), funcDef.getDescriptor(), isInt);
                     }
                     case Owner.Class(String clazz, boolean isInt) -> {
-                        mv.visitTypeInsn(NEW, ThreadHelper.getClassName(funcDef));
+                        mv.visitTypeInsn(NEW, clazz);
                         mv.visitInsn(DUP);
                         loadFuncParam(funcDef.getParams(), rparams, mv, helper, table);
-                        mv.visitMethodInsn(INVOKESPECIAL, ThreadHelper.getClassName(funcDef), "<init>", 
+                        mv.visitMethodInsn(INVOKESPECIAL, clazz, "<init>", 
                                             ThreadHelper.getInitDescriptor(funcDef), isInt);
                         mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Runnable", "run", "()V", true);
                     }
@@ -398,5 +398,23 @@ public interface ExpSummoner extends Opcodes {
             helper.reportPopOpStack(1);
             return TypePair.Yup(summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint).type);
         }
+    }
+
+    public static ReturnType summonThread(FuncCall funcCall, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        IdentEntry entry = table.getEntry(funcCall.getIdent().getName(), SymbolType.FUNCTION);
+        if (entry == null) {
+            throw new CError(ErrorType.NOT_A_THREAD, "No thread named " + funcCall.getIdent().getName() + " can be found.");
+        }
+        FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
+        Owner.Class owner = ((Owner.Class)funcDef.getOwner());
+        mv.visitTypeInsn(NEW, owner.className());
+        mv.visitInsn(DUP);
+        helper.reportUseOpStack(2, null);
+        loadFuncParam(funcDef.getParams(), funcCall.getFuncRParams().getExps(), mv, helper, table);
+        mv.visitMethodInsn(INVOKESPECIAL, owner.className(), "<init>", 
+                            ThreadHelper.getInitDescriptor(funcDef), owner.isInterface());
+        helper.reportPopOpStack(2 + funcCall.getFuncRParams().getExps().size());
+        helper.reportUseOpStack(1, owner.className());
+        return new ReturnType.JavaClass(owner.className());
     }
 }

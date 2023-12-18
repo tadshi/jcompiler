@@ -18,10 +18,12 @@ import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.ConstDef;
 import com.front.gunit.Exp;
+import com.front.gunit.GLock;
+import com.front.gunit.GSemaphore;
 import com.front.gunit.InitVal;
 import com.front.gunit.ParallelType;
 import com.front.gunit.VarDef;
-
+import java.util.concurrent.Semaphore;
 /**
  * StaticSummoner
  * Summon global variable / constant for the program.
@@ -101,16 +103,16 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
         IdentEntry entry = table.addVarDef(varDef);
         DefNode def = entry.getDef();
         ReturnType innerType = def.getType();
-        cv.visitField(ACC_PUBLIC + ACC_STATIC, def.getName(), innerType.toDescriptor(), null, null);
-        switch (pType.getName()) {
-            case "LOCKTK" -> {
+        cv.visitField(ACC_PUBLIC + ACC_STATIC, def.getName(), innerType.toDescriptor(), null, null).visitEnd();
+        switch (pType.getDataType()) {
+            case GLock lock -> {
                 initVisitor.visitTypeInsn(NEW, innerType.toTypeString());
                 initVisitor.visitInsn(DUP);
-                initVisitor.visitMethodInsn(INVOKESPECIAL, innerType.toTypeString(), def.getName(), "()V", false);
+                initVisitor.visitMethodInsn(INVOKESPECIAL, innerType.toTypeString(), "<init>", "()V", false);
                 initVisitor.visitFieldInsn(PUTSTATIC, Owner.builtinStatic().className(), def.getName(), innerType.toDescriptor());
                 initHelper.reportUsedStack(2);
             }
-            case "SEMAPHORETK" -> {
+            case GSemaphore sem -> {
                 initVisitor.visitTypeInsn(NEW, innerType.toTypeString());
                 initVisitor.visitInsn(DUP);
                 initHelper.reportUseOpStack(2, null);
@@ -128,7 +130,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                     initHelper.reportUseOpStack(1, "I");
                 }
                 initVisitor.visitMethodInsn(INVOKESPECIAL, innerType.toTypeString(), "<init>", "(I)V", false);
-                initVisitor.visitFieldInsn(PUTSTATIC, Owner.builtinMain().className(), def.getName(), innerType.toDescriptor());
+                initVisitor.visitFieldInsn(PUTSTATIC, Owner.builtinStatic().className(), def.getName(), innerType.toDescriptor());
                 initHelper.reportPopOpStack(3);
             }
             default -> throw new RuntimeException(def.getType() + " is not a parallel type.");

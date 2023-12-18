@@ -1,4 +1,4 @@
-list<string> a = ["123","456"];
+// list<string> a = ["123","456"];
 
 lock a,b;
 semaphore c = 10;
