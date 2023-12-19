@@ -175,6 +175,8 @@ public class MethodHelper {
     private Object convertToASM(String descString) {
         return switch (descString) {
             case "I" -> Opcodes.INTEGER;
+            case "Z" -> Opcodes.INTEGER;
+            case "F" -> Opcodes.FLOAT;
             case null -> Opcodes.UNINITIALIZED_THIS;
             default -> descString;
         };

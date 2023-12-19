@@ -15,7 +15,7 @@ public class IdentEntry {
     private final int level;
     private final boolean mut;
     private IdentEntry last;
-    private final List<Integer> compileTimeValue;
+    private final List<Object> compileTimeValue;
 
     public IdentEntry(DefNode def, int level, boolean mut) {
         this.name = def.getName();
@@ -27,7 +27,7 @@ public class IdentEntry {
         this.compileTimeValue = null;
     }
 
-    public IdentEntry(VarDefNode def, int level, int compileTimeValue) {
+    public IdentEntry(VarDefNode def, int level, Object compileTimeValue) {
         this.name = def.getName();
         this.type = def.getType();
         this.def = def;
@@ -38,7 +38,7 @@ public class IdentEntry {
         this.compileTimeValue.add(compileTimeValue);
     }
 
-    public IdentEntry(ArrayDefNode def, int level, List<Integer>compileTimeValues) {
+    public IdentEntry(ArrayDefNode def, int level, List<Object>compileTimeValues) {
         this.name = def.getName();
         this.type = def.getType();
         this.def = def;
@@ -82,7 +82,7 @@ public class IdentEntry {
         return last;
     }
 
-    public int getCompileTimeValue() {
+    public Object getCompileTimeValue() {
         if ((def instanceof VarDefNode) && (compileTimeValue != null)) {
             return compileTimeValue.get(0);
         } else {
@@ -90,11 +90,11 @@ public class IdentEntry {
         }
     }
 
-    public List<Integer> getCompileTimeValues() {
+    public List<Object> getCompileTimeValues() {
         return compileTimeValue;
     }
 
-    public int indexCompileTimeValue(List<Integer> indexes) {
+    public Object indexCompileTimeValue(List<Integer> indexes) {
         if (!(def instanceof ArrayDefNode)) {
             throw new RuntimeException("No, this is not an array.");
         }

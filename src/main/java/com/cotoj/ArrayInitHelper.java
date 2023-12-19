@@ -6,6 +6,8 @@ import org.objectweb.asm.Opcodes;
 import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
+import com.cotoj.utils.OpcodeHelper;
+import com.cotoj.utils.ReturnType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.Exp;
@@ -28,8 +30,12 @@ public interface ArrayInitHelper extends Opcodes {
                     helper.dup(mv);
                     mv.visitLdcInsn(i);
                     helper.reportUseOpStack(1, "I");
-                    ExpSummoner.summonExp(exp, mv, helper, table);
-                    mv.visitInsn(IASTORE);
+                    ReturnType expType = ExpSummoner.summonExp(exp, mv, helper, table);
+                    if (expType != arrayDef.getType()) {
+                        throw new CError(ErrorType.TYPE_MISMATCH, "Cannot init " + arrayDef.getType() + " array with " + 
+                                        expType + " values.");
+                    }
+                    mv.visitInsn(OpcodeHelper.toStore(arrayDef.getType()));
                     helper.reportPopOpStack(3);
                 }
                 case InitValList subInitList -> {
@@ -64,7 +70,7 @@ public interface ArrayInitHelper extends Opcodes {
                 helper.reportPopOpStack(1);
             } else {
                 mv.visitLdcInsn(entry.getCompileTimeValues().get(shift + i));
-                mv.visitInsn(IASTORE);
+                mv.visitInsn(OpcodeHelper.toStore(arrayDef.getType()));
                 helper.reportUsedStack(3);
             }
         }

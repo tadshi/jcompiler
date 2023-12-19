@@ -22,6 +22,7 @@ import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.Owner;
 import com.cotoj.utils.ReturnType;
 import com.cotoj.utils.SymbolType;
+import com.cotoj.utils.TypedObject;
 import com.front.cerror.CError;
 import com.front.gunit.ConstDef;
 import com.front.gunit.ConstExp;
@@ -120,7 +121,11 @@ public class SymbolTable {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
             }
             for (ConstExp exp : dimList) {
-                arrayDef.addDimension(ConstExpParser.parseConstExp(exp, this));
+                TypedObject expValue = ConstExpParser.parseConstExp(exp, this);
+                if (!(expValue.type() instanceof ReturnType.Integer)) {
+                    throw new CError(ErrorType.TYPE_MISMATCH, "Array dim must be an integer.");
+                }
+                arrayDef.addDimension(((Integer)expValue.object()));
             }
             def = arrayDef;
         } else {
@@ -150,9 +155,13 @@ public class SymbolTable {
                 throw new RuntimeException("No, so what it its dim indeed?!?!");
             }
             for (ConstExp exp : dimList) {
-                arrayDef.addDimension(ConstExpParser.parseConstExp(exp, this));
+                TypedObject expValue = ConstExpParser.parseConstExp(exp, this);
+                if (!(expValue.type() instanceof ReturnType.Integer)) {
+                    throw new CError(ErrorType.TYPE_MISMATCH, "Array dim must be an integer.");
+                }
+                arrayDef.addDimension(((Integer)expValue.object()));
             }
-            List<Integer> initVals = ConstExpParser.parseConstList((ConstInitValList)initVal, this);
+            List<Object> initVals = ConstExpParser.parseConstList((ConstInitValList)initVal, arrayDef.getType(), this);
             if (arrayDef.getDimSizes().stream().reduce((a, b) -> a * b).get() != initVals.size()) {
                 throw new CError(ErrorType.INVALID_CONST_LIST, "The const init list size is only " + initVals.size() + ".");
             }
@@ -163,7 +172,11 @@ public class SymbolTable {
             }
             VarDefNode varDef = new VarDefNode(ident.getName(), getLevel() == 0 ? Owner.builtinStatic() : new Owner.Local(), 
                                 ReturnType.fromIdent(ident), false);
-            entry = new IdentEntry(varDef, getLevel(), ConstExpParser.parseConstExp((ConstExp)initVal, this));
+            TypedObject initValValue = ConstExpParser.parseConstExp((ConstExp)initVal, this);
+            if (!(initValValue.type().equals(varDef.getType()))) {
+                throw new CError(ErrorType.TYPE_MISMATCH, "You cannot init a " + varDef.getType() + " value with " + initValValue.type());
+            }
+            entry = new IdentEntry(varDef, getLevel(), initValValue.object());
         }
         addEntry(entry);
         return entry;
@@ -181,7 +194,11 @@ public class SymbolTable {
                     case ARRAYMULTID -> {
                         var marrParam = new ArrayFuncParamNode(funcFParam.getIdent().getName(), ReturnType.fromIdent(funcFParam.getIdent()));
                         for (ConstExp constExp : funcFParam.getConstExp()) {
-                            marrParam.addDim(ConstExpParser.parseConstExp(constExp, this));
+                            TypedObject expValue = ConstExpParser.parseConstExp(constExp, this);
+                            if (!(expValue.type() instanceof ReturnType.Integer)) {
+                                throw new CError(ErrorType.TYPE_MISMATCH, "Array index must be a integer.");
+                            }
+                            marrParam.addDim(((Integer)expValue.object()));
                         }
                         yield marrParam;
                     }

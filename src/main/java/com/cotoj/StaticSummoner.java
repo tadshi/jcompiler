@@ -10,6 +10,7 @@ import com.cotoj.adaptor.ArrayDefNode;
 import com.cotoj.adaptor.DefNode;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.utils.ClassMaker;
+import com.cotoj.utils.ExpTypeHelper;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.Owner;
@@ -23,7 +24,6 @@ import com.front.gunit.GSemaphore;
 import com.front.gunit.InitVal;
 import com.front.gunit.ParallelType;
 import com.front.gunit.VarDef;
-import java.util.concurrent.Semaphore;
 /**
  * StaticSummoner
  * Summon global variable / constant for the program.
@@ -71,7 +71,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                     if (!(initVal.getInitForm() instanceof Exp)) {
                         throw new CError(ErrorType.UNEXPECTED_TOKEN, "Expect a exp");
                     }
-                    ExpSummoner.summonExp(((Exp)initVal.getInitForm()), initVisitor, initHelper, table);
+                    ExpTypeHelper.checkMatch(_varDef.getType() ,ExpSummoner.summonExp(((Exp)initVal.getInitForm()), initVisitor, initHelper, table));
                     initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", _varDef.getName(), _varDef.getDescriptor());
                     initHelper.reportPopOpStack(1);
                 }
