@@ -110,6 +110,7 @@ public class LexicalParser {
         if (ch == '{') return "LBRACE {";
         if (ch == '}') return "RBRACE }";
         if (ch == ':') return "COLON :";
+        if (ch == '.') return "DOT .";
         return "";
     }
     

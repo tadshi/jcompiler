@@ -36,10 +36,15 @@ special-char ::= any printable ASCII character except '"' (double quote)
 InitList ::= '['{litem}{',' litem}']'
 litem ::= int | float | bool | string  (same type)
 
+//列表放入值，一次只能放入一个 列表a.add(1)
+PutItemStmt ::= Ident'.''add''('Exp')'';'
+
 InitDict ::= '{'{pair}{','pair}'}'
 pair ::= key ':' value
 key ::= int | float | string
 value ::= int | float | bool | string  (keys are the same type, so as values)
+
+
 ```
 ## 函数定义和函数闭包
 ```angular2html

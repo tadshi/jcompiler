@@ -1,4 +1,4 @@
-// list<string> a = ["123","456"];
+/*list<string> a = ["123","456"];
 
 lock a,b;
 semaphore c = 10;
@@ -58,8 +58,10 @@ def fun5(int a) => int
     }
     return fun5(a - 1) + fun5(a - 2);
 }
+*/
 def main()
 {
+    a.add(1);
     // run func3;
 
     // lock x;

@@ -560,6 +560,34 @@ public class GrammaticalParser {
                             //error
                         }
                     }
+                }else if(wordMap.get(grammarId+2).type.equals("DOT")){
+                    PutItemStmt putItemStmt = new PutItemStmt();
+                    grammarId++;
+                    if (wordMap.get(grammarId).type.equals("IDENFR")){
+                        Ident ident = new Ident();
+                        //必须是thread类型的函数名
+                        ident.setIdent(wordMap.get(grammarId).content, wordMap.get(grammarId).line);
+                        putItemStmt.setIdent(ident);
+                        id2Object.put(treeId++, ident);
+                    }
+                    // ident.add(exp)
+                    grammarId += 3;
+                    if(wordMap.get(grammarId).type.equals("LPARENT")){
+                        Exp exp = parseExp();
+                        putItemStmt.setExp(exp);
+                        id2Object.put(treeId++, exp);
+                    }
+                    grammarId++;
+                    if(!wordMap.get(grammarId).type.equals("RPARENT")){
+                        //error
+                        grammarId--;
+                    }
+                    ret.setWrappedStmt(putItemStmt);
+                    grammarId++;
+                    if (!wordMap.get(grammarId).type.equals("SEMICN")) {
+                        grammarId--;
+                        //error
+                    }
                 } else {
                     ExpStmt expStmt = new ExpStmt();
                     Exp exp = parseExp();
