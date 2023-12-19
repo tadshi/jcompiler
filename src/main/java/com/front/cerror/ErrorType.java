@@ -14,4 +14,5 @@ public enum ErrorType {
     ASSIGN_TO_CONST,
     IDENT_NOT_EXISTS,
     NOT_A_THREAD,
+    DIVIDE_BY_ZERO,
 }

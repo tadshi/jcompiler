@@ -59,7 +59,7 @@ public interface Mimic {
         ret.setBlock(mainFuncDef.getBlock());
         FuncFParams params = new FuncFParams();
         FuncFParam param = new FuncFParam();
-        Ident args = new Ident("VAR", "STRING");
+        Ident args = new Ident("VAR", "STRINGTK");
         args.setIdent("args", -1);
         param.setIdent(args);
         param.setType(FuncParamType.ARRAY1D);

@@ -16,7 +16,7 @@ public class App {
             System.out.println("Jcompiler ver 0.2 by yifeiHuang623 and tadshi");
             return;
         } else if (args.length != 3) {
-            System.out.println("Usage: java -jar jcompiler.jar <target_file> <save_path> <log_path>");
+            System.out.println("Usage: java -jar jcompiler.jar <soruce_file> <output_file> <log_path>");
             return;
         }  else if (args[0].startsWith("--test=")) {
             String testFileName = "/test" + args[0].substring(7) + ".txt";
@@ -38,6 +38,7 @@ public class App {
         
         JavaBytecodeSummoner summoner = new JavaBytecodeSummoner(logPath);
         summoner.summon(root);
-        summoner.save(savePath);
+        // summoner.save(savePath);
+        summoner.saveJar(savePath);
     }
 }

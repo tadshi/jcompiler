@@ -12,6 +12,8 @@ public interface OpcodeHelper extends Opcodes{
         if (type.isPrimitive()) {
             return switch (type) {
                 case ReturnType.Integer i -> ILOAD;
+                case ReturnType.Boolean z -> ILOAD;
+                case ReturnType.Float f -> FLOAD;
                 default -> throw new RuntimeException("Cannot recognize " + type);
             };
         }
@@ -24,5 +26,17 @@ public interface OpcodeHelper extends Opcodes{
             case ArrayFuncParamNode ap -> ALOAD;
             case VariableFuncParamNode vp -> ALOAD;
         };
+    }
+
+    public static int toStore(ReturnType type) {
+        if (type.isPrimitive()) {
+            return switch (type) {
+                case ReturnType.Integer i -> ISTORE;
+                case ReturnType.Boolean z -> ISTORE;
+                case ReturnType.Float f -> FSTORE;
+                default -> throw new RuntimeException("Cannot recognize " + type);
+            };
+        }
+        return ALOAD;
     }
 }

@@ -4,7 +4,6 @@ import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.FuncType;
 import com.front.gunit.Ident;
-import java.util.concurrent.locks.ReentrantLock;
 
 public sealed interface ReturnType {
     public final record Void() implements ReturnType {
@@ -18,6 +17,22 @@ public sealed interface ReturnType {
     public final record Integer() implements ReturnType {
         public String toTypeString() {
             return "I";
+        }
+        public boolean isPrimitive() {
+            return true;
+        }
+    };
+    public final record Float() implements ReturnType {
+        public String toTypeString() {
+            return "F";
+        }
+        public boolean isPrimitive() {
+            return true;
+        }
+    };
+    public final record Boolean() implements ReturnType {
+        public String toTypeString() {
+            return "Z";
         }
         public boolean isPrimitive() {
             return true;
@@ -49,9 +64,13 @@ public sealed interface ReturnType {
     public static ReturnType fromIdent(Ident ident) {
         return switch (ident.getType()) {
             case "INTTK" -> new Integer();
-            case "STRING" -> JavaType.STRING;
+            case "FLOATTK" -> new Float();
+            case "BOOLTK"-> new Boolean();
+            case "STRINGTK" -> JavaType.STRING;
             case "LOCKTK" -> JavaType.LOCK;
             case "SEMAPHORETK" -> JavaType.SEM;
+            case "LISTTK" -> JavaType.LIST;
+            case "DICTTK" -> JavaType.DICT;
             default -> new JavaClass(ident.getType());
         };
     }
@@ -60,7 +79,11 @@ public sealed interface ReturnType {
         return switch (funcType.getName()) {
             case "INTTK" -> new Integer();
             case "VOIDTK" -> new Void();
-            // default -> new JavaClass(ident.getType());
+            case "FLOATTK" -> new Float();
+            case "BOOLTK"-> new Boolean();
+            case "STRINGTK" -> JavaType.STRING;
+            case "LISTTK" -> JavaType.LIST;
+            case "DICTTK" -> JavaType.DICT;
             default -> throw new CError(ErrorType.UNEXPECTED_TOKEN, funcType.getName());
         };
     }

@@ -15,10 +15,12 @@ public interface AutoPacker {
 
     public static boolean isPacked(ReturnType premitive, ReturnType packed) {
         if (packed instanceof ReturnType.JavaClass javaType) {
-            return (premitive instanceof ReturnType.Integer) && (JavaType.INTEGER.equals(javaType) ||
-                                                                JavaType.OBJECT.equals(javaType));
-        } else {
-            return false;
-        }
+            if (premitive instanceof ReturnType.Integer) {
+                return (JavaType.INTEGER.equals(javaType) || JavaType.OBJECT.equals(javaType));
+            } else if (premitive instanceof ReturnType.Float) {
+                return (JavaType.FLOAT.equals(javaType) || JavaType.OBJECT.equals(javaType));
+            }
+        } 
+        return false;
     }
 }
