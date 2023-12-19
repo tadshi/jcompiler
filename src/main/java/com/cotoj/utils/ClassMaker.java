@@ -35,4 +35,8 @@ public abstract class ClassMaker {
         jout.flush();
         jout.close();
     }
+
+    public byte[] getBytes() {
+        return classWriter.toByteArray();
+    }
 }

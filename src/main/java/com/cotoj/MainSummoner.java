@@ -435,4 +435,8 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             tStream.close();
         }
     }
+
+    public Map<String, ClassWriter> getThreads() {
+        return threads;
+    }
 }
