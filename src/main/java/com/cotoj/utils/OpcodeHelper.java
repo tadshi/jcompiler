@@ -61,7 +61,7 @@ public interface OpcodeHelper extends Opcodes{
                 default -> throw new RuntimeException("Cannot recognize " + type);
             };
         }
-        return ALOAD;
+        return AASTORE;
     }
 
     public static int toReturn(ReturnType type) {

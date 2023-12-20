@@ -1,0 +1,37 @@
+semaphore sem1 = 1, sem2 = 0;
+lock mutex;
+shared int counter;
+
+thread def ping() {
+    int local_counter = 0;
+    while(local_counter < 10) {
+        await sem1;
+        await mutex;
+        local_counter = counter;
+        counter = counter + 1;
+        signal mutex;
+        printf("ping!\n");
+        signal sem2;
+    }
+    printf("Package loss rate 0\n");
+}
+
+thread def pong() {
+    int local_counter = 0;
+    while(local_counter < 10) {
+        await sem2;
+        await mutex;
+        local_counter = counter;
+        counter = counter + 1;
+        signal mutex;
+        printf("pong!\n");
+        signal sem1;
+    }
+    printf("TTL 0s\n");
+}
+
+def main() {
+    run ping();
+    run pong();
+    return;
+}
