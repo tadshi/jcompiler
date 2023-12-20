@@ -1,13 +1,13 @@
 package com.front.gunit;
 public class Exp extends ObjectClass{
 
-    private AddExp addExp;
+    private LOrExp lOrExp;
 
-    public void setAddExp(AddExp addExp){
-        this.addExp = addExp;
+    public void setLOrExp(LOrExp lOrExp){
+        this.lOrExp = lOrExp;
     }
 
-    public AddExp getAddExp() {
-        return addExp;
+    public LOrExp getLOrExp() {
+        return lOrExp;
     }
 }

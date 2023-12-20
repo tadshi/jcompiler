@@ -1122,8 +1122,8 @@ public class GrammaticalParser {
 
     Exp parseExp(){
         Exp ret = new Exp();
-        AddExp addExp = parseAddExp();
-        ret.setAddExp(addExp);
+        LOrExp lOrExp = parseLOrExp();
+        ret.setLOrExp(lOrExp);
         id2Object.put(treeId++, ret);
         return ret;
     }
