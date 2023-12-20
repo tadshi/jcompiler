@@ -28,6 +28,7 @@ import com.cotoj.adaptor.StaticAccessExp;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.adaptor.VariableFuncParamNode;
 import com.cotoj.utils.ClassMaker;
+import com.cotoj.utils.ExpTypeHelper;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.JavaType;
 import com.cotoj.utils.MethodHelper;
@@ -51,6 +52,21 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
     }
 
+    private void summonDictPut(VarDefNode varDef, Exp keyExp, Exp assignExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
+        switch (varDef.getOwner()) {
+            case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
+            case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(varDef));
+            case Owner.Class clazz -> mv.visitFieldInsn(GETFIELD, clazz.className(), varDef.getName(), varDef.getDescriptor());
+        }
+        ReturnType.Dict dictType = ((ReturnType.Dict)varDef.getType());
+        ExpTypeHelper.implicitCast(dictType.keyType(), ExpSummoner.summonExp(keyExp, mv, helper, table), mv, helper);
+        ExpTypeHelper.implicitCast(dictType.valueType(), ExpSummoner.summonExp(assignExp, mv, helper, table), mv, helper);
+        mv.visitMethodInsn(INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "put", 
+                            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+        mv.visitInsn(POP);
+        helper.reportPopOpStack(3);
+    }
+
     private void summonStmt(StmtTrait stmt, MethodVisitor mv, SymbolTable table, MethodHelper helper) {
         switch (stmt) {
             case LValDecl assignStmt -> {
@@ -61,13 +77,23 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 if (!entry.isMut()) {
                     throw new CError(ErrorType.ASSIGN_TO_CONST, "You cannot assign to a non-mut variable.");
                 }
+                // Is this a dict put?
+                if (lValType instanceof ReturnType.Dict && lVal.getExps().size() > 0) {
+                    if (lVal.getExps().size() != 1) {
+                        throw new CError(ErrorType.UNEXPECTED_TOKEN, "A Dict cannot be indexed twice.");
+                    }
+                    summonDictPut(((VarDefNode)entry.getDef()), lVal.getExps().getFirst(), assignStmt.getExp(), mv, helper, table);
+                    return;
+                }
+                // Now it is normal variable.
                 switch (entry.getDef()) {
                     case VarDefNode varDef -> {
                         rValType = ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
+                        ExpTypeHelper.implicitCast(lValType, rValType, mv, helper);
                         switch (varDef.getOwner()) {
                             case Owner.Static sClass -> mv.visitFieldInsn(PUTSTATIC, sClass.className(), varDef.getName(), varDef.getDescriptor());
-                            case Owner.Local() -> mv.visitVarInsn(ISTORE, helper.getVarIndex(varDef));
-                            default -> throw new RuntimeException("We cannot recognize " + varDef.getOwner() + "in lval.");
+                            case Owner.Local() -> mv.visitVarInsn(OpcodeHelper.toStore(lValType), helper.getVarIndex(varDef));
+                            case Owner.Class clazz -> mv.visitFieldInsn(PUTFIELD, clazz.className(), varDef.getName(), varDef.getDescriptor());
                         }
                         helper.reportPopOpStack(1);
                     }
@@ -78,7 +104,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         switch (arrayDef.getOwner()) {
                             case Owner.Static sClass -> mv.visitFieldInsn(GETSTATIC, sClass.className(), arrayDef.getName(), arrayDef.getDescriptor());
                             case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(arrayDef));
-                            default -> throw new RuntimeException("We cannot recognize " + arrayDef.getOwner() + "in lval.");
+                            case Owner.Class clazz -> mv.visitFieldInsn(GETFIELD, clazz.className(), arrayDef.getName(), arrayDef.getDescriptor());
                         }
                         helper.reportUseOpStack(1, arrayDef.getDescriptor());
                         for (int index = 0; index < lVal.getExps().size() - 1; ++index) {
@@ -89,13 +115,11 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         }
                         ExpSummoner.summonExp(lVal.getExps().getLast(), mv, helper, table);
                         rValType = ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
-                        mv.visitInsn(IASTORE);
+                        ExpTypeHelper.implicitCast(lValType, rValType, mv, helper);
+                        mv.visitInsn(OpcodeHelper.toStore(lValType));
                         helper.reportPopOpStack(3);
                     }
                     case FuncDefNode funcDef -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "No, you cannot assign a function.");
-                }
-                if (!(lValType.getClass().equals(rValType.getClass()))) {
-                    throw new CError(ErrorType.TYPE_MISMATCH, "Left " + lValType + " while right " + rValType);
                 }
             }
             case ExpStmt expStmt -> {
@@ -173,12 +197,13 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 helper.visitFrame(mv);
             }
             case ReturnStmt returnStmt -> {
+                ReturnType returnType = currentFunc.getReturnType();
                 if (returnStmt.getExp() != null) {
-                    ExpSummoner.summonExp(returnStmt.getExp(), mv, helper, table);
-                    mv.visitInsn(IRETURN);
+                    ExpTypeHelper.implicitCast(returnType, ExpSummoner.summonExp(returnStmt.getExp(), mv, helper, table), mv, helper);
+                    mv.visitInsn(OpcodeHelper.toReturn(returnType));
                     helper.reportPopOpStack(1);
                 } else {
-                    if (!(currentFunc.getReturnType() instanceof ReturnType.Void)) {
+                    if (!(returnType instanceof ReturnType.Void)) {
                         throw new CError(ErrorType.WRONG_RETURN_TYPE, "This is a non-void function.");
                     }
                     mv.visitInsn(RETURN);
@@ -190,7 +215,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             case LValGetint getIntStmt -> {
                 LValDecl lValDecl = new LValDecl();
                 lValDecl.setLVal(getIntStmt.getlVal());
-                DotExp dotExp = new DotExp(Mimic.mimicAddExp("__jScanner", new ReturnType.JavaClass("java/util/Scanner")));
+                DotExp dotExp = new DotExp(Mimic.mimicLOrExp("__jScanner", new ReturnType.JavaClass("java/util/Scanner")));
                 MethodInvokeDotter dotter = new MethodInvokeDotter("nextInt", new ReturnType.Integer(), false);
                 dotExp.addDotter(dotter);
                 lValDecl.setExp(dotExp);
@@ -199,12 +224,12 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             case PrintStmt printStmt -> {
                 ReturnType pstream = new ReturnType.JavaClass("java/io/PrintStream");
                 // Suddenly found that we can almost support java8 if we take class into type system
-                DotExp dotExp = new DotExp(Mimic.mimicAddExp(new StaticAccessExp(new ReturnType.JavaClass("java/lang/System"), 
+                DotExp dotExp = new DotExp(Mimic.mimicLOrExp(new StaticAccessExp(new ReturnType.JavaClass("java/lang/System"), 
                                                             "out", pstream)));
                 MethodInvokeDotter minv = new MethodInvokeDotter("printf", pstream, false);
                 minv.addDefParam(new SimpleFuncParamNode("formatString", JavaType.STRING));
                 minv.addDefParam(new VariableFuncParamNode("formats", JavaType.OBJECT));
-                minv.addCallParam(Mimic.wrap(Mimic.mimicAddExp(printStmt.getFormaString())));
+                minv.addCallParam(Mimic.wrap(Mimic.mimicLOrExp(printStmt.getFormaString())));
                 for (Exp param : printStmt.getExps()) {
                     minv.addCallParam(param);
                 }
@@ -284,6 +309,25 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)V", false);
                 mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
                 helper.reportPopOpStack(3);
+            }
+            case PutItemStmt appendStmt -> {
+                Ident listIdent = appendStmt.getIdent();
+                IdentEntry listEntry = table.getEntry(listIdent.getName(), SymbolType.VARIABLE);
+                if (!(listEntry.getDef() instanceof VarDefNode && listEntry.getDef().getType() instanceof ReturnType.List)) {
+                    throw new CError(ErrorType.UNEXPECTED_TOKEN, "You can only put to a list.");
+                }
+                VarDefNode listDef = ((VarDefNode)listEntry.getDef());
+                ReturnType.List listType = ((ReturnType.List)listDef.getType());
+                switch (listDef.getOwner()) {
+                    case Owner.Static sttc -> mv.visitFieldInsn(GETSTATIC, Owner.builtinStatic().className(), listDef.getName(), listDef.getDescriptor());
+                    case Owner.Local() -> mv.visitVarInsn(ALOAD, helper.getVarIndex(listDef));
+                    case Owner.Class clazz -> mv.visitFieldInsn(GETFIELD, clazz.className(), listDef.getName(), listDef.getDescriptor());
+                }
+                helper.reportUseOpStack(1, listDef.getTypeString());
+                ExpTypeHelper.implicitCast(listType.contentType(), ExpSummoner.summonExp(appendStmt.getExp(), mv, helper, table), mv, helper);
+                mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "add", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+                mv.visitInsn(POP);
+                helper.reportUsedStack(2);
             }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }
@@ -414,7 +458,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PUBLIC, "main", "([Ljava/lang/String;)V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", "__main", "([Ljava/lang/String;)I", false);
+        mv.visitMethodInsn(INVOKESTATIC, "com/oto/Main", "__main", "([Ljava/lang/String;)V", false);
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();

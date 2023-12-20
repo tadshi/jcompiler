@@ -39,4 +39,40 @@ public interface OpcodeHelper extends Opcodes{
         }
         return ALOAD;
     }
+
+    public static int toArrayLoad(ReturnType type) {
+        if (type.isPrimitive()) {
+            return switch (type) {
+                case ReturnType.Integer i -> IALOAD;
+                case ReturnType.Boolean z -> BALOAD;
+                case ReturnType.Float f -> FALOAD;
+                default -> throw new RuntimeException("Cannot recognize " + type);
+            };
+        }
+        return ALOAD;
+    }
+
+    public static int toArrayStore(ReturnType type) {
+        if (type.isPrimitive()) {
+            return switch (type) {
+                case ReturnType.Integer i -> IASTORE;
+                case ReturnType.Boolean z -> BASTORE;
+                case ReturnType.Float f -> FASTORE;
+                default -> throw new RuntimeException("Cannot recognize " + type);
+            };
+        }
+        return ALOAD;
+    }
+
+    public static int toReturn(ReturnType type) {
+        if (type.isPrimitive()) {
+            return switch (type) {
+                case ReturnType.Integer i -> IRETURN;
+                case ReturnType.Boolean z -> IRETURN;
+                case ReturnType.Float f -> FRETURN;
+                default -> throw new RuntimeException("Cannot recognize " + type);
+            };
+        }
+        return ARETURN;
+    }
 }

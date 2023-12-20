@@ -65,16 +65,25 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                 initHelper.reportPopOpStack(1);
             }
             case VarDefNode _varDef -> {
-                cv.visitField(access, entry.getName(), _varDef.getDescriptor(), null, null).visitEnd();
                 InitVal initVal = varDef.getInitVal();
-                if (initVal != null) {
+                cv.visitField(access, entry.getName(), _varDef.getDescriptor(), null, null).visitEnd();
+                if (_varDef.getType() instanceof ReturnType.List) {
+                    ExpSummoner.summonList(((ReturnType.List)_varDef.getType()), varDef.getIdent().isShared(),
+                                         varDef.getInitVal(), initVisitor, initHelper, table);
+                } else if (_varDef.getType() instanceof ReturnType.Dict) {
+                    ExpSummoner.summonDict(((ReturnType.Dict)_varDef.getType()), varDef.getIdent().isShared(),
+                                         varDef.getInitVal(), initVisitor, initHelper, table);
+                } else if (initVal == null) {
+                    // Keep the field null.
+                    return;
+                } else {
                     if (!(initVal.getInitForm() instanceof Exp)) {
                         throw new CError(ErrorType.UNEXPECTED_TOKEN, "Expect a exp");
                     }
                     ExpTypeHelper.checkMatch(_varDef.getType() ,ExpSummoner.summonExp(((Exp)initVal.getInitForm()), initVisitor, initHelper, table));
-                    initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", _varDef.getName(), _varDef.getDescriptor());
-                    initHelper.reportPopOpStack(1);
                 }
+                initVisitor.visitFieldInsn(PUTSTATIC, "com/oto/Static", _varDef.getName(), _varDef.getDescriptor());
+                initHelper.reportPopOpStack(1);
             }
             default -> throw new RuntimeException("No, I do not know this type of def.");
         }
