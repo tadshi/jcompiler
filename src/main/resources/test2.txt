@@ -1,37 +1,21 @@
-semaphore sem1 = 1, sem2 = 0;
-lock mutex;
-shared int counter;
-
-thread def ping() {
-    int local_counter = 0;
-    while(local_counter < 20) {
-        await sem1;
-        await mutex;
-        local_counter = counter;
-        counter = counter + 1;
-        signal mutex;
-        printf("ping!");
-        signal sem2;
-    }
-    printf("Package loss rate 0\n");
-}
-
-thread def pong() {
-    int local_counter = 0;
-    while(local_counter < 20) {
-        await sem2;
-        await mutex;
-        local_counter = counter;
-        counter = counter + 1;
-        signal mutex;
-        printf("pong!");
-        signal sem1;
-    }
-    printf("TTL 0s\n");
-}
+list<string> banner = ["Have", "a", "nice"];
+dict<int, string> corpus= {1: "one", 2: "two", 3: "three", 4:"four", 5: "five",
+                    6: "six", 7: "seven", 8: "eight", 9: "nine", 0: "zero"};
 
 def main() {
-    run ping();
-    run pong();
-    return 0;
+    int num;
+    printf("Please give me a number!\n");
+    num = getint();
+    corpus[0] = "null";
+    while (num != 0) {
+        int temp = num % 10;
+        printf("%s ", corpus[temp]);
+        num = num / 10;
+    }
+    printf("\n");
+    banner.add("Day!");
+    int i = 0;
+    while (i < 4) {
+        printf("%s ", banner[i]);
+    }
 }

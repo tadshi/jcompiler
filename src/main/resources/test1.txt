@@ -1,86 +1,26 @@
-/*list<string> a = ["123","456"];
-
-lock a,b;
-semaphore c = 10;
-thread def fun1()
+def fun1(string banner)
 {
-    printf("Hello, World!");
+    printf("Hello, %s!\n", banner);
 }
-thread def fun2(int ver)
+def fun2(float ver)
 {
-    printf("Jcompiler ver 0.%d", ver);
+    printf("RPCL ver %.2f\n", ver);
 }
-def fun3(int a, int b) => int
+def fibonacci(int item) => int
 {
-    if (a > b)
-    {
-        return a;
-    }
-    else
-    {
-        return b;
-    }
-    return a;
-}
-
-def gcd(int a, int b) => int
-{
-    if (b == 1 || a % b == 0)
-    {
-        return b;
-    }
-    return gcd(b, a % b);
-}
-
-def lcm(int a, int b) => int
-{
-    int gcds = gcd(a, b);
-    return a * b / gcds;
-}
-
-def fun4(int a, int b, int c)
-{
-    int d = (a + b - c) * a;
-    printf("%d\n", d);
-}
-
-def fun5(int a) => int
-{
-    if (a == 1)
-    {
+    if (item == 1 || item == 2) {
         return 1;
     }
-    else
-    {
-        if (a == 2) {
-            return 1;
-        }
-    }
-    return fun5(a - 1) + fun5(a - 2);
+    return fibonacci(item - 1) + fibonacci(item - 2);
 }
-*/
 def main()
 {
-    a.add(1);
-    // run func3;
-
-    // lock x;
-    // unlock x;
-    fun1();
-    fun2(6);
-    printf("%d\n", fun3(2, fun3(3, 6)));
-    int a, b;
-    printf("scanf a, b to get gcd and lcm\n");
-    a = getint();
-    b = getint();
-    printf("gcd is %d\n", gcd(a, b));
-    printf("lcm is %d\n", lcm(a, b));
-    int temp;
-    temp = getint();
-    fun4(temp, 3, 10);
-    printf("scanf a to get Fibonacci\n");
+    float VERSION = 1.01;
+    fun1("World");
+    fun2(VERSION);
+    printf("Input an integer to get Fibonacci\n");
     int fib;
     fib = getint();
-    printf("fib is %d\n", fun5(fib));
-    return 0;
+    printf("fib is %d\n", fibonacci(fib));
+    return;
 }

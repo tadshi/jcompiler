@@ -342,7 +342,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     switch (entry.getDef()) {
                         case VarDefNode varDef -> {
                             mv.visitLdcInsn(entry.getCompileTimeValue());
-                            mv.visitVarInsn(ISTORE, helper.getVarIndex(varDef));
+                            mv.visitVarInsn(OpcodeHelper.toStore(varDef.getType()), helper.getVarIndex(varDef));
                             helper.reportUseOpStack(1, varDef.getType().toTypeString());
                         }
                         case ArrayDefNode arrayDef -> {
@@ -363,8 +363,8 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     }
                     switch (entry.getDef()) {
                         case VarDefNode simpleDef -> {
-                            ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table);
-                            mv.visitVarInsn(ISTORE, helper.getVarIndex(simpleDef));
+                            ExpTypeHelper.checkMatch(simpleDef.getType(), ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table));
+                            mv.visitVarInsn(OpcodeHelper.toStore(simpleDef.getType()), helper.getVarIndex(simpleDef));
                         }
                         case ArrayDefNode arrayDef -> {
                             ArrayInitHelper.buildArray(arrayDef, varDef, mv, helper, table);
