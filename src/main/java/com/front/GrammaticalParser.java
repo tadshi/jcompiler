@@ -916,8 +916,8 @@ public class GrammaticalParser {
 
     ConstExp parseConstExp(){
         ConstExp ret = new ConstExp();
-        AddExp addExp = parseAddExp();
-        ret.setAddExp(addExp);
+        LOrExp lOrExp = parseLOrExp();
+        ret.setLOrExp(lOrExp);
         id2Object.put(treeId++, ret);
         return ret;
     }
