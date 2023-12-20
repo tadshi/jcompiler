@@ -38,7 +38,7 @@ public class App {
         
         JavaBytecodeSummoner summoner = new JavaBytecodeSummoner(logPath);
         summoner.summon(root);
-        // summoner.save(savePath);
-        summoner.saveJar(savePath);
+        summoner.save(savePath);
+        // summoner.saveJar(savePath);
     }
 }

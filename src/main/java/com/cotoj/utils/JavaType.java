@@ -10,9 +10,11 @@ public final class JavaType {
     public static ReturnType OBJECT = new JavaClass("java/lang/Object");
     public static ReturnType THREAD = new JavaClass("java/lang/Thread");
     public static ReturnType LIST_INT = new JavaClass("java/util/List");
-    public static ReturnType LIST = new JavaClass("java/util/ArrayList");
+    public static ReturnType ARRLIST = new JavaClass("java/util/ArrayList");
+    public static ReturnType CONCLIST = new JavaClass("java/util/concurrent/CopyOnWriteArrayList");
     public static ReturnType DICT_INT = new JavaClass("java/util/Map");
-    public static ReturnType DICT = new JavaClass("java/util/HashMap");
+    public static ReturnType HASHDICT = new JavaClass("java/util/HashMap");
+    public static ReturnType CONCDICT = new JavaClass("java/util/concurrent/ConcurrentHashMap");
     public static ReturnType LOCK_INT = new JavaClass("java/util/concurrent/locks/Lock");
     public static ReturnType LOCK = new JavaClass("java/util/concurrent/locks/ReentrantLock");
     public static ReturnType SEM = new JavaClass("java/util/concurrent/Semaphore");

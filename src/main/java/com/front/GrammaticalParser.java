@@ -137,7 +137,8 @@ public class GrammaticalParser {
         ObjectClass dataType = null;
         if(wordMap.get(grammarId).type.equals("LOCKTK")){
             dataType = new GLock();
-        }else{
+        } else {
+            // FIXME
             dataType = new GSemaphore();
         }
         parallelType.setDataType(dataType);
