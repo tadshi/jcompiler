@@ -383,14 +383,15 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                             if (varDef.getInitVal() == null) break;
                             ExpTypeHelper.checkMatch(simpleDef.getType(), ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table));
                             mv.visitVarInsn(OpcodeHelper.toStore(simpleDef.getType()), helper.getVarIndex(simpleDef));
+                            helper.reportPopOpStack(1);
                         }
                         case ArrayDefNode arrayDef -> {
                             ArrayInitHelper.buildArray(arrayDef, varDef, mv, helper, table);
                             mv.visitVarInsn(ASTORE, helper.getVarIndex(arrayDef));
+                            helper.reportPopOpStack(1);
                         }
                         case FuncDefNode funcDef -> throw new RuntimeException("Why function?");
                     }
-                    helper.reportPopOpStack(1);
                 }
             }
             case ParallelDecl para -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "Sorry but parallel types can only be defined in global scope.");

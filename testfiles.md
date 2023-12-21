@@ -68,4 +68,3 @@ And zero-length dict is also false.
 - shared list/dict 支持并发读写
 - 比较运算符支持字符串字典序比较
 - 计算时自动int->float, 赋值时自动转型
-
