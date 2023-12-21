@@ -29,19 +29,19 @@ public final class ArrayDefNode extends DefNode {
     }
 
     public String getContentTypeString() {
-        return "I";
+        return getType().toTypeString();
     }
 
     public String getIndexedTypeString(int level) {
-        return "[".repeat(dimSizes.size() - level) + "I";
+        return "[".repeat(dimSizes.size() - level) + getContentTypeString();
     }
 
     public String getTypeString() {
-        return "[".repeat(dimSizes.size()) + "I";
+        return "[".repeat(dimSizes.size()) + getContentTypeString();
     }
 
     @Override
     public String getDescriptor() {
-        return "[".repeat(dimSizes.size()) + "I";
+        return "[".repeat(dimSizes.size()) + getContentTypeString();
     }
 }

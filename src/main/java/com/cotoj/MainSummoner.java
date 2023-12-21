@@ -102,7 +102,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         helper.reportPopOpStack(1);
                     }
                     case ArrayDefNode arrayDef -> {
-                        if (arrayDef.getDimSizes().size() - 1 != lVal.getExps().size()) {
+                        if (arrayDef.getDimSizes().size() != lVal.getExps().size()) {
                             throw new CError(ErrorType.ARRAY_DIM_ERROR, "Expect " + arrayDef.getDimSizes().size() + ", found " + lVal.getExps().size());
                         }
                         switch (arrayDef.getOwner()) {
@@ -120,7 +120,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         ExpSummoner.summonExp(lVal.getExps().getLast(), mv, helper, table);
                         rValType = ExpSummoner.summonExp(assignStmt.getExp(), mv, helper, table);
                         ExpTypeHelper.implicitCast(lValType, rValType, mv, helper);
-                        mv.visitInsn(OpcodeHelper.toStore(lValType));
+                        mv.visitInsn(OpcodeHelper.toArrayStore(lValType));
                         helper.reportPopOpStack(3);
                     }
                     case FuncDefNode funcDef -> throw new CError(ErrorType.UNEXPECTED_TOKEN, "No, you cannot assign a function.");
@@ -151,6 +151,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     helper.visitFrame(mv);
                 }
                 summonStmt(ifStmt.getStmt().getWrappedStmt(), mv, table, helper);
+                mv.visitInsn(NOP);
                 if (ifStmt.getElseStmt() == null) {
                     mv.visitLabel(else_stmt);
                     helper.visitFrame(mv);
@@ -160,6 +161,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     mv.visitLabel(else_stmt);
                     helper.visitFrame(mv);
                     summonStmt(ifStmt.getElseStmt().getWrappedStmt(), mv, table, helper);
+                    mv.visitInsn(NOP);
                     mv.visitLabel(end);
                     helper.visitFrame(mv);
                 }
@@ -188,6 +190,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         helper.releaseLocal(entry.getDef());
                     }
                 }
+                mv.visitInsn(NOP);
                 mv.visitJumpInsn(GOTO, start);
                 mv.visitLabel(end);
                 helper.visitFrame(mv);
@@ -373,11 +376,9 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                         mv.visitVarInsn(ASTORE, helper.getVarIndex(entry.getDef()));
                         continue;
                     }
-                    if (varDef.getInitVal() == null) {
-                        continue;
-                    }
                     switch (entry.getDef()) {
                         case VarDefNode simpleDef -> {
+                            if (varDef.getInitVal() == null) break;
                             ExpTypeHelper.checkMatch(simpleDef.getType(), ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table));
                             mv.visitVarInsn(OpcodeHelper.toStore(simpleDef.getType()), helper.getVarIndex(simpleDef));
                         }
@@ -455,7 +456,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
         IdentEntry entry = table.addFuncDef(funcDef, Owner.builtinMain());
         FuncDefNode funcDefNode = ((FuncDefNode)entry.getDef());
         this.currentFunc = funcDefNode;
-        MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PRIVATE, funcDefNode.getName(), funcDefNode.getDescriptor(), null, null);
+        MethodVisitor mv = cv.visitMethod(ACC_STATIC + ACC_PUBLIC, funcDefNode.getName(), funcDefNode.getDescriptor(), null, null);
         table.pushContext();
         table.loadFunctionParams(entry.getName());
         MethodHelper helper = new MethodHelper(funcDefNode);

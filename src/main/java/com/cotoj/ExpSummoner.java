@@ -180,6 +180,7 @@ public interface ExpSummoner extends Opcodes {
                     mv.visitInsn(dim_index == indexes.size() - 1 ? OpcodeHelper.toArrayLoad(arrayDef.getType()) : AALOAD);
                     helper.reportPopOpStack(2);
                     helper.reportUseOpStack(1, arrayDef.getIndexedTypeString(dim_index + 1));
+                    ++dim_index;
                 }
                 return arrayDef.getType();
             } 
@@ -432,8 +433,8 @@ public interface ExpSummoner extends Opcodes {
             mv.visitInsn(POP);
             mv.visitInsn(ICONST_0);
             helper.reportPopOpStack(2);
-            helper.visitFrame(mv);
             mv.visitLabel(label);
+            helper.visitFrame(mv);
             return new ReturnType.Integer();
         }
     }
@@ -445,8 +446,8 @@ public interface ExpSummoner extends Opcodes {
             Label midPoint = new Label();
             TypePair pair = summonLAndExp(lAndExp.getlAndExp(), mv, helper, table, skipPoint);
             if (pair.used) {
-                helper.visitFrame(mv);
                 mv.visitLabel(midPoint);
+                helper.visitFrame(mv);
             }
             ExpTypeHelper.anyToBool(pair.type(), mv, helper);
             helper.dup(mv);
@@ -464,8 +465,8 @@ public interface ExpSummoner extends Opcodes {
             Label midPoint = new Label();
             TypePair pair = summonLOrExp(lOrExp.getlOrExp(), mv, helper, table, midPoint);
             if (pair.used) {
-                helper.visitFrame(mv);
                 mv.visitLabel(midPoint);
+                helper.visitFrame(mv);
             }
             ExpTypeHelper.anyToBool(pair.type(), mv, helper);
             helper.dup(mv);
@@ -484,8 +485,8 @@ public interface ExpSummoner extends Opcodes {
             throw new RuntimeException("Dotter list cannot be empty.");
         }
         if (pair.used()) {
-            helper.visitFrame(mv);
             mv.visitLabel(startLabel);
+            helper.visitFrame(mv);
         }
         for (MethodInvokeDotter dotter : dotExp.getDotList()) {
             loadFuncParam(dotter.getDefParams(), dotter.getCallParams(), mv, helper, table);
@@ -512,8 +513,8 @@ public interface ExpSummoner extends Opcodes {
             Label label = new Label();
             TypePair pair = summonLOrExp(exp.getLOrExp(), mv, helper, table, label);
             if (pair.used) {
-                helper.visitFrame(mv);
                 mv.visitLabel(label);
+                helper.visitFrame(mv);
             }
             return pair.type();
         }

@@ -60,9 +60,9 @@ public interface ConstExpParser {
         return switch (misteryExp) {
             case Exp e -> parseLOrExp(((Exp)misteryExp).getLOrExp(), table);
             case LVal lVal -> parseLVal((LVal)misteryExp, table);
-            case GNumber number -> new TypedObject(JavaType.INTEGER, number.getNumber());
-            case GBool bool -> new TypedObject(JavaType.BOOLEAN, bool.getBool());
-            case GFloat f -> new TypedObject(JavaType.FLOAT, f.getNumber());
+            case GNumber number -> new TypedObject(new ReturnType.Integer(), number.getNumber());
+            case GBool bool -> new TypedObject(new ReturnType.Boolean(), bool.getBool());
+            case GFloat f -> new TypedObject(new ReturnType.Float(), f.getNumber());
             case GString str -> new TypedObject(JavaType.STRING, str.getString());
             default -> throw new RuntimeException(misteryExp.getClass() + " should not found in PrimaryExp");
         };

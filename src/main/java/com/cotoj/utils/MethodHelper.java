@@ -64,11 +64,12 @@ public class MethodHelper {
             localMap.put(thisDef, 0);
             localStack.push(thisDef);
             ++maxLocal;
-        }
-        for (FuncParamNode param : node.getParams()) {
-            localMap.put(param.toDef(), localStack.size());
-            localStack.push(param.toDef());
-            ++maxLocal;
+        } else {
+            for (FuncParamNode param : node.getParams()) {
+                localMap.put(param.toDef(), localStack.size());
+                localStack.push(param.toDef());
+                ++maxLocal;
+            }
         }
     }
     
@@ -221,8 +222,8 @@ public class MethodHelper {
 
     public void makeReturnLabel(MethodVisitor mv) {
         if (midReturned) {
-            visitFrame(mv);
             mv.visitLabel(endLabel);
+            visitFrame(mv);
         }
     }
 }

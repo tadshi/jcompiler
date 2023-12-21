@@ -89,12 +89,12 @@ public interface ExpTypeHelper {
             helper.reportPopOpStack(1);
             mv.visitInsn(Opcodes.ICONST_1);
             mv.visitJumpInsn(Opcodes.GOTO, endLabel);
-            helper.visitFrame(mv);
             mv.visitLabel(falseLabel);
+            helper.visitFrame(mv);
             mv.visitInsn(Opcodes.ICONST_0);
             helper.reportUseOpStack(1, "I");
-            helper.visitFrame(mv);
             mv.visitLabel(endLabel);
+            helper.visitFrame(mv);
             return;
         } else if (baseType instanceof ReturnType.Float) {
             mv.visitInsn(Opcodes.FCMPG);

@@ -1512,7 +1512,7 @@ public class GrammaticalParser {
             UnaryExp unaryExp = parseUnaryExp();
             opExp.setUnaryExp(unaryExp);
             id2Object.put(treeId++, opExp);
-            ret.setWrappedExp(unaryExp);
+            ret.setWrappedExp(opExp);
         } else {
             grammarId--;
             PrimaryExp primaryExp = parsePrimaryExp();

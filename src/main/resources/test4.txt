@@ -1,0 +1,163 @@
+const int n = 4;
+const float a[n][n] = { 
+    {0.21695372, 0.35212185, 0.67169345, 0.79546902},
+    {0.63890066, 0.21824961, 0.38937748, 0.06467692},
+    {0.09912608, 0.88969107, 0.47826048, 0.98187516},
+    {0.93240532, 0.45594283, 0.08538147, 0.69237882} 
+};
+const float b[n][n] = {
+    {0.99530325, 0.30841236, 0.99136767, 0.9314924},
+    {0.49103012, 0.2135013, 0.39150528, 0.57984261},
+    {0.8675243, 0.36572314, 0.73802737, 0.25312629},
+    {0.71683213, 0.9030649, 0.54830357, 0.20537021}
+}
+
+shared float c[n][n];
+shared float channles[4][4];
+shared int counter = 0;
+lock mutex;
+semaphore bar_sem = 0, clear_sem = 0;
+semaphore fin_sem = 0;
+
+def barrier() {
+    await mutex;
+    counter = counter + 1;
+    if (counter == n) {
+        int i = 0;
+        while (i < n) {
+            signal bar_sem;
+            i = i + 1;
+        }
+    }
+    signal mutex;
+    await bar_sem;
+
+    await mutex;
+    counter = counter - 1;
+    if (counter == 0) {
+        int i = 0;
+        while (i < n) {
+            signal clear_sem;
+            i = i + 1;
+        } 
+    }
+    signal mutex;
+    await clear_sem;
+}
+
+thread def cannon_worker(int id) {
+    float buffer[n / 2][n / 2] = { {0, 0}, {0, 0} };
+    float pa[n / 2][n / 2], pb[n / 2][n / 2];
+    int row = 0;
+    int col = 0;
+    int index = 0;
+    int anumber = id / 2;
+    int bnumber = id % 2;
+    int arow = anumber * 2;
+    int acol = (anumber + bnumber) % 2 * 2;
+    int brow = (bnumber + anumber) % 2 * 2;
+    int bcol = bnumber * 2;
+    int left_id = ((anumber + 1) % 2) * 2 + bnumber;
+    int up_id = anumber * 2 + (bnumber + 1) % 2;
+    while (row < n / 2) {
+        col = 0;
+        while (col < n / 2) {
+            pa[row][col] = a[arow + row][acol + col];
+            pb[row][col] = b[brow + row][bcol + col];
+            col = col + 1;
+        }
+        row = row + 1;
+    }
+    int loop_count = 0;
+    while (loop_count < 2) {
+        row = 0;
+        while(row < n / 2) {
+            col = 0;
+            while (col < n / 2) {
+                index = 0;
+                while (index < n / 2) {
+                    buffer[row][col] = buffer[row][col] + pa[row][index] * pb[index][col];
+                    index = index + 1;
+                }
+                col = col + 1;
+            }
+            row = row + 1;
+        }
+        // Left!
+        row = 0;
+        while(row < n / 2) {
+            col = 0;
+            while (col < n / 2) {
+                channles[left_id][row * 2 + col] = pa[row][col];
+                col = col + 1;
+            }
+            row = row + 1;
+        }
+        barrier();
+        row = 0;
+        while(row < n / 2) {
+            col = 0;
+            while (col < n / 2) {
+                pa[row][col] = channles[id][row * 2 + col];
+                col = col + 1;
+            }
+            row = row + 1;
+        }
+        barrier();
+        // Right!
+        row = 0;
+        while(row < n / 2) {
+            col = 0;
+            while (col < n / 2) {
+                channles[up_id][row * 2 + col] = pb[row][col];
+                col = col + 1;
+            }
+            row = row + 1;
+        }
+        barrier();
+        row = 0;
+        while(row < n / 2) {
+            col = 0;
+            while (col < n / 2) {
+                pb[row][col] = channles[id][row * 2 + col];
+                col = col + 1;
+            }
+            row = row + 1;
+        }
+        barrier();
+        loop_count = loop_count + 1;
+    }
+    row = 0;
+    while(row < n / 2) {
+        col = 0;
+        while (col < n / 2) {
+            c[arow + row][bcol + col] = buffer[row][col];
+            col = col + 1;
+        }
+        row = row + 1;
+    }
+    barrier();
+    if (id == 0) {
+        signal fin_sem;
+    }
+    printf("Thread %d finished.", id);
+}
+
+def main() {
+    run cannon_worker(0);
+    run cannon_worker(1);
+    run cannon_worker(2);
+    run cannon_worker(3);
+    await fin_sem;
+    int row = 0;
+    int col = 0;
+    while(row < n) {
+        col = 0;
+        while (col < n) {
+            printf("%.2f ", c[row][col])
+            col = col + 1;
+        }
+        printf("\n");
+        row = row + 1;
+    }
+}
