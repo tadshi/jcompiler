@@ -11,6 +11,6 @@ public class InitVal extends ObjectClass{
     }
 
     public boolean isUninit() {
-        return initForm instanceof ObjectClass;
+        return initForm.getClass() == ObjectClass.class;
     }
 }
