@@ -1076,7 +1076,6 @@ public class GrammaticalParser {
                         initVal = parseInitVal();
                         grammarId++;
                         if(wordMap.get(grammarId).type.equals("COLON")){
-                            grammarId++;
                             InitVal initValValue = parseInitVal();
                             tmp.addInitValMap(initVal, initValValue);
                         }else{
