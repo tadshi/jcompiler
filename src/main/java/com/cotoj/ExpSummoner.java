@@ -139,7 +139,7 @@ public interface ExpSummoner extends Opcodes {
                 switch (varDef.getType()) {
                     case ReturnType.List(ReturnType cType) -> {
                         ExpTypeHelper.checkInt(summonExp(lVal.getExps().getFirst(), mv, helper, table));
-                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.LIST_INT.toTypeString(), "get", "(I)Ljava/lang/Object;", true);
+                        mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "get", "(I)Ljava/lang/Object;", true);
                         AutoPacker.summonInlineUnpack(cType, mv);
                         helper.reportPopOpStack(2);
                         helper.reportUseOpStack(1, cType.toTypeString());
@@ -147,7 +147,8 @@ public interface ExpSummoner extends Opcodes {
                     }
                     case ReturnType.Dict(ReturnType keyType, ReturnType valType) -> {
                         ExpTypeHelper.checkMatch(keyType, summonExp(lVal.getExps().getFirst(), mv, helper, table));
-                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.DICT_INT.toTypeString(), "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+                        AutoPacker.summonPack(keyType, mv, helper);
+                        mv.visitMethodInsn(INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
                         AutoPacker.summonInlineUnpack(valType, mv);
                         helper.reportPopOpStack(2);
                         helper.reportUseOpStack(1, valType.toTypeString());
@@ -555,6 +556,7 @@ public interface ExpSummoner extends Opcodes {
             }
             helper.dup(mv);
             ExpTypeHelper.checkMatch(type.contentType(), ExpSummoner.summonExp(((Exp)listInitVal.getInitForm()), mv, helper, table));
+            AutoPacker.summonPack(type.contentType(), mv, helper);
             mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "add", "(Ljava/lang/Object;)Z", true);
             mv.visitInsn(POP);
             helper.reportPopOpStack(2);
@@ -579,7 +581,9 @@ public interface ExpSummoner extends Opcodes {
             }
             helper.dup(mv);
             ExpTypeHelper.checkMatch(type.keyType(), ExpSummoner.summonExp(((Exp)dictPair.getKey().getInitForm()), mv, helper, table));
+            AutoPacker.summonPack(type.keyType(), mv, helper);
             ExpTypeHelper.checkMatch(type.valueType(), ExpSummoner.summonExp(((Exp)dictPair.getValue().getInitForm()), mv, helper, table));
+            AutoPacker.summonPack(type.valueType(), mv, helper);
             mv.visitMethodInsn(INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
             mv.visitInsn(POP);
             helper.reportPopOpStack(3);

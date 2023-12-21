@@ -12,6 +12,13 @@ fib is 610
 ## test2.txt
 基础的容器功能测试。
 
+程序输出：
+```
+Please give me a number!
+2306122
+two two one six null three two 
+Have a nice Day!
+```
 ## test3.txt
 基础并行原语能力测试。
 输出：

@@ -27,6 +27,7 @@ import com.cotoj.adaptor.SimpleFuncParamNode;
 import com.cotoj.adaptor.StaticAccessExp;
 import com.cotoj.adaptor.VarDefNode;
 import com.cotoj.adaptor.VariableFuncParamNode;
+import com.cotoj.utils.AutoPacker;
 import com.cotoj.utils.ClassMaker;
 import com.cotoj.utils.ExpTypeHelper;
 import com.cotoj.utils.IdentEntry;
@@ -59,8 +60,11 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             case Owner.Class clazz -> mv.visitFieldInsn(GETFIELD, clazz.className(), varDef.getName(), varDef.getDescriptor());
         }
         ReturnType.Dict dictType = ((ReturnType.Dict)varDef.getType());
+        helper.reportUseOpStack(1, dictType.toTypeString());
         ExpTypeHelper.implicitCast(dictType.keyType(), ExpSummoner.summonExp(keyExp, mv, helper, table), mv, helper);
+        AutoPacker.summonPack(dictType.keyType(), mv, helper);
         ExpTypeHelper.implicitCast(dictType.valueType(), ExpSummoner.summonExp(assignExp, mv, helper, table), mv, helper);
+        AutoPacker.summonPack(dictType.valueType(), mv, helper);
         mv.visitMethodInsn(INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "put", 
                             "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
         mv.visitInsn(POP);
@@ -325,9 +329,10 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 }
                 helper.reportUseOpStack(1, listDef.getTypeString());
                 ExpTypeHelper.implicitCast(listType.contentType(), ExpSummoner.summonExp(appendStmt.getExp(), mv, helper, table), mv, helper);
-                mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "add", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+                AutoPacker.summonPack(listType.contentType(), mv, helper);
+                mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "add", "(Ljava/lang/Object;)Z", true);
                 mv.visitInsn(POP);
-                helper.reportUsedStack(2);
+                helper.reportPopOpStack(2);
             }
             default -> throw new RuntimeException("Cannot recognise " + stmt.getClass() + " as a statement.");
         }
@@ -358,6 +363,16 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 for (VarDef varDef : varDecl.getVarDefs()) {
                     IdentEntry entry = table.addVarDef(varDef);
                     helper.registerLocal(entry.getDef());
+                    if (entry.getDef().getType() instanceof ReturnType.List) {
+                        ExpSummoner.summonList(((ReturnType.List)entry.getDef().getType()), varDef.getIdent().isShared(), varDef.getInitVal(), mv, helper, table);
+                        mv.visitVarInsn(ASTORE, helper.getVarIndex(entry.getDef()));
+                        continue;
+                    }
+                    if (entry.getDef().getType() instanceof ReturnType.Dict) {
+                        ExpSummoner.summonDict(((ReturnType.Dict)entry.getDef().getType()), varDef.getIdent().isShared(), varDef.getInitVal(), mv, helper, table);
+                        mv.visitVarInsn(ASTORE, helper.getVarIndex(entry.getDef()));
+                        continue;
+                    }
                     if (varDef.getInitVal() == null) {
                         continue;
                     }

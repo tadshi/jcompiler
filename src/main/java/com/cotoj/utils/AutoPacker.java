@@ -17,6 +17,9 @@ public interface AutoPacker {
 
     public static void summonInlineUnpack(ReturnType unpackedType, MethodVisitor mv) {
         ReturnType packedType = getPackedType(unpackedType);
+        if (packedType == null) {
+            return;
+        }
         String methodName;
         if (JavaType.BOOLEAN.equals(packedType)) {
             methodName = "booleanValue";
