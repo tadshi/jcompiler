@@ -74,6 +74,9 @@ public interface ConstExpParser {
         if (misteryExp instanceof OpExp) {
             OpExp opExp = ((OpExp)misteryExp);
             TypedObject operand = parseUnaryExp(opExp.getUnaryExp(), table);
+            if ("!".equals(opExp.getUnaryOp().getOp())) {
+                return new TypedObject(new ReturnType.Boolean(), !operand.asBool());
+            }
             if (operand.type() instanceof ReturnType.Integer) {
                 Integer gInteger = ((Integer)operand.object());
                 return switch (opExp.getUnaryOp().getOp()) {

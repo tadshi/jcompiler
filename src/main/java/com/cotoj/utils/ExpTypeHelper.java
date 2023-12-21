@@ -100,16 +100,20 @@ public interface ExpTypeHelper {
             mv.visitInsn(Opcodes.FCMPG);
             mv.visitInsn(Opcodes.ICONST_1);
             mv.visitInsn(Opcodes.IAND);
-            helper.reportUsedStack(1);
-        } else if (JavaType.STRING.equals(baseType)) {
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, JavaType.STRING.toTypeString(), "isEmpty", "()Z", false);
-        } else if (baseType instanceof ReturnType.List) {
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, JavaType.LIST_INT.toTypeString(), "isEmpty", "Z", true);
-        } else if (baseType instanceof ReturnType.Dict) {
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, JavaType.DICT_INT.toTypeString(), "isEmpty", "Z", true);
         } else {
-            throw new CError(ErrorType.TYPE_MISMATCH, baseType + " cannot be converted into bool implicitly.");
+            if (JavaType.STRING.equals(baseType)) {
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, JavaType.STRING.toTypeString(), "isEmpty", "()Z", false);
+            } else if (baseType instanceof ReturnType.List) {
+                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "isEmpty", "()Z", true);
+            } else if (baseType instanceof ReturnType.Dict) {
+                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "isEmpty", "()Z", true);
+            } else {
+                throw new CError(ErrorType.TYPE_MISMATCH, baseType + " cannot be converted into bool implicitly.");
+            }
+            mv.visitInsn(Opcodes.ICONST_1);
+            mv.visitInsn(Opcodes.IXOR);
         }
+        helper.reportUsedStack(1);
         helper.reportPopOpStack(1);
         helper.reportUseOpStack(1, "I");
     }

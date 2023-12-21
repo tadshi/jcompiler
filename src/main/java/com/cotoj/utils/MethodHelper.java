@@ -107,7 +107,7 @@ public class MethodHelper {
             } else {
                 localShift++;
                 appendLocals.add(convertToASM(switch (def) {
-                    case VarDefNode varDef -> varDef.getDescriptor();
+                    case VarDefNode varDef -> varDef.getTypeString();
                     case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
                     case FuncDefNode funcDef -> throw new RuntimeException("Why you put a function in the stack?");
                 }));
@@ -167,7 +167,7 @@ public class MethodHelper {
     private void visitFullFrame(MethodVisitor mv) {
         Object[] localObjects = localStack.stream().map(def -> def == null ? thisType : switch(def) {
             case VarDefNode varDef -> varDef.getTypeString();
-            case ArrayDefNode arrayDef -> arrayDef.getTypeString();
+            case ArrayDefNode arrayDef -> arrayDef.getDescriptor();
             case FuncDefNode funcDef -> throw new RuntimeException("Why there is a function in the stack?");
         }).map(desc -> convertToASM(desc)).toArray();
         mv.visitFrame(Opcodes.F_FULL, localMap.size(), localObjects, operandStack.size(), operandStack.toArray());

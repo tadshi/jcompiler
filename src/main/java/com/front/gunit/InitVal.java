@@ -9,4 +9,8 @@ public class InitVal extends ObjectClass{
     public ObjectClass getInitForm() {
         return initForm;
     }
+
+    public boolean isUninit() {
+        return initForm instanceof ObjectClass;
+    }
 }

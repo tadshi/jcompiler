@@ -231,7 +231,13 @@ public interface ExpSummoner extends Opcodes {
             case PrimaryExp primaryExp -> summonPrimaryExp(primaryExp, mv, helper, table);
             case OpExp opExp -> {
                 ReturnType opType = summonUnaryExp(opExp.getUnaryExp(), mv, helper, table);
-                if (opType instanceof ReturnType.Integer) {
+                if ("!".equals(opExp.getUnaryOp().getOp())) {
+                    ExpTypeHelper.anyToBool(opType, mv, helper);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(IXOR);
+                    helper.reportUsedStack(1);
+                    yield new ReturnType.Boolean();
+                } else if (opType instanceof ReturnType.Integer) {
                     switch (opExp.getUnaryOp().getOp()) {
                         case "+" -> {}
                         case "-" -> {mv.visitInsn(INEG);}
@@ -544,8 +550,8 @@ public interface ExpSummoner extends Opcodes {
         mv.visitTypeInsn(NEW, listType.toTypeString());
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, listType.toTypeString(), "<init>", "()V", false);
-        helper.reportUseOpStack(1, listType.toTypeString());
-        if (initVal == null) {
+        helper.reportUseOpStack(1, JavaType.LIST_INT.toTypeString());
+        if (initVal == null || initVal.isUninit()) {
             return;
         }
         if (!(initVal.getInitForm() instanceof InitValList)) {
@@ -569,8 +575,8 @@ public interface ExpSummoner extends Opcodes {
         mv.visitTypeInsn(NEW, dictType.toTypeString());
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, dictType.toTypeString(), "<init>", "()V", false);
-        helper.reportUseOpStack(1, dictType.toTypeString());
-        if (initVal == null) {
+        helper.reportUseOpStack(1, JavaType.DICT_INT.toTypeString());
+        if (initVal == null || initVal.isUninit()) {
             return;
         }
         if (!(initVal.getInitForm() instanceof InitValList)) {

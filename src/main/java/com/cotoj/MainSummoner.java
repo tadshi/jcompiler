@@ -369,11 +369,13 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     if (entry.getDef().getType() instanceof ReturnType.List) {
                         ExpSummoner.summonList(((ReturnType.List)entry.getDef().getType()), varDef.getIdent().isShared(), varDef.getInitVal(), mv, helper, table);
                         mv.visitVarInsn(ASTORE, helper.getVarIndex(entry.getDef()));
+                        helper.reportPopOpStack(1);
                         continue;
                     }
                     if (entry.getDef().getType() instanceof ReturnType.Dict) {
                         ExpSummoner.summonDict(((ReturnType.Dict)entry.getDef().getType()), varDef.getIdent().isShared(), varDef.getInitVal(), mv, helper, table);
                         mv.visitVarInsn(ASTORE, helper.getVarIndex(entry.getDef()));
+                        helper.reportPopOpStack(1);
                         continue;
                     }
                     switch (entry.getDef()) {

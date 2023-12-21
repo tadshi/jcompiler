@@ -73,7 +73,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
                 } else if (_varDef.getType() instanceof ReturnType.Dict) {
                     ExpSummoner.summonDict(((ReturnType.Dict)_varDef.getType()), varDef.getIdent().isShared(),
                                          varDef.getInitVal(), initVisitor, initHelper, table);
-                } else if (initVal == null) {
+                } else if (initVal == null || initVal.isUninit()) {
                     // Keep the field null.
                     return;
                 } else {

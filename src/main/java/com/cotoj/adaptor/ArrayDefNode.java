@@ -42,6 +42,6 @@ public final class ArrayDefNode extends DefNode {
 
     @Override
     public String getDescriptor() {
-        return "[".repeat(dimSizes.size()) + getContentTypeString();
+        return "[".repeat(dimSizes.size()) + getType().toDescriptor();
     }
 }

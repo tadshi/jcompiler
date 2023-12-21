@@ -1,0 +1,13 @@
+def main() {
+    if (!"") {
+        printf("Zero-length string is false;\n");
+    }
+    list<float> fl = {};
+    if (!fl) {
+        printf("Zero-length list is false;\n");
+    }
+    dict<int, string> isd = {};
+    if (!isd) {
+        printf("And zero-length dict is also false.\n");
+    }
+}
