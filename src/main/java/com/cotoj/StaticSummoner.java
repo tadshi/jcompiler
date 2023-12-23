@@ -33,7 +33,7 @@ public class StaticSummoner extends ClassMaker implements Opcodes {
     MethodHelper initHelper;
     public StaticSummoner(File logFile, SymbolTable table) throws FileNotFoundException {
         super(logFile);
-        cv.visit(V17, ACC_PUBLIC + ACC_FINAL, "com/oto/Static", null, "java/lang/Object", null);
+        cv.visit(V21, ACC_PUBLIC + ACC_FINAL, "com/oto/Static", null, "java/lang/Object", null);
         initVisitor = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "<clinit>", "()V", null, null);
         initVisitor.visitCode();
         // initVisitor.visitVarInsn(ALOAD, 0);

@@ -48,7 +48,7 @@ public class GrammaticalParser {
                         ret.addDecl(decl);
                     }
                 }
-                case "THREADTK" -> {
+                case "THREADTK", "ROUTINETK" -> {
                     label = 1;
                     grammarId--;
                     FuncDef funcDef = parseFuncDef();
@@ -221,13 +221,17 @@ public class GrammaticalParser {
         return ret;
     }
 
-    //FuncDef → ['thread'] 'def' Ident '(' [FuncFParams] ')' ['=>' Type] Block
+    //FuncDef → ['thread' | 'routine'] 'def' Ident '(' [FuncFParams] ')' ['=>' Type] Block
     FuncDef parseFuncDef(){
         FuncDef ret = new FuncDef();
         Ident ident = new Ident("PROC", "");
         grammarId++;
         if (wordMap.get(grammarId).type.equals("THREADTK")){
             ret.setIsThread();
+            grammarId++;
+        }
+        if (wordMap.get(grammarId).type.equals("ROUTINETK")){
+            ret.setRoutine(true);
             grammarId++;
         }
         if(wordMap.get(grammarId).type.equals("DEFTK")) {

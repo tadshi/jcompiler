@@ -1,7 +1,5 @@
 package com.cotoj;
 
-import java.util.Stack;
-
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -10,7 +8,6 @@ import com.cotoj.utils.ExpTypeHelper;
 import com.cotoj.utils.IdentEntry;
 import com.cotoj.utils.MethodHelper;
 import com.cotoj.utils.OpcodeHelper;
-import com.cotoj.utils.ReturnType;
 import com.front.cerror.CError;
 import com.front.cerror.ErrorType;
 import com.front.gunit.Exp;

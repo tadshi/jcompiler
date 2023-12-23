@@ -204,6 +204,7 @@ public class LexicalParser {
         if (str.equals("return")) return "RETURNTK";
         if (str.equals("void")) return "VOIDTK";
         if (str.equals("thread")) return "THREADTK";
+        if (str.equals("routine")) return "ROUTINETK";
         if (str.equals("run")) return "RUNTK";
         if (str.equals("shared")) return "SHAREDTK";
         if (str.equals("float")) return "FLOATTK";

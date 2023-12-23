@@ -59,7 +59,7 @@ public final class JavaBytecodeSummoner {
         }
         staticSummoner.masterUp();
         for (FuncDef funcDef : compUnit.getFuncDefs()) {
-            if (funcDef.isThread()) {
+            if (funcDef.isThread() || funcDef.isRoutine()) {
                 mainSummoner.summonThreadFunc(funcDef, symbolTable);
             } else {
                 mainSummoner.summonFunc(funcDef, symbolTable);

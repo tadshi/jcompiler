@@ -13,12 +13,14 @@ public final class FuncDefNode extends DefNode {
     private ReturnType returnType;
     private List<FuncParamNode> params;
     private boolean isThread;
+    private boolean isRoutine;
 
-    public FuncDefNode(String name, Owner owner, ReturnType returnType, boolean isThread) {
+    public FuncDefNode(String name, Owner owner, ReturnType returnType, boolean isThread, boolean isRoutine) {
         super(name, owner, null); // This is on purpose. Returntype may not be real Type...
         this.returnType = returnType;
         this.params = new ArrayList<>();
         this.isThread = isThread;
+        this.isRoutine = isRoutine;
     }
 
     public void addParam(FuncParamNode param) {
@@ -42,8 +44,12 @@ public final class FuncDefNode extends DefNode {
         return returnType;
     }
 
-    public boolean isThread() {
-        return isThread;
+    public boolean isParallel() {
+        return isThread || isRoutine;
+    }
+
+    public boolean isRoutine() {
+        return isRoutine;
     }
 
     @Override

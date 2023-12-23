@@ -45,7 +45,7 @@ def barrier() {
     await clear_sem;
 }
 
-thread def cannon_worker(int id) {
+routine def cannon_worker(int id) {
     float buffer[n / 2][n / 2] = { {0, 0}, {0, 0} };
     float pa[n / 2][n / 2], pb[n / 2][n / 2];
     int row = 0;

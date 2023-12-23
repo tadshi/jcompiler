@@ -58,7 +58,7 @@ public class MethodHelper {
         localShift = 0;
         localCorrcupted = false;
         appendLocals = new ArrayList<>();
-        if (node.isThread()) {
+        if (node.isParallel()) {
             String className = ThreadHelper.getClassName(node);
             VarDefNode thisDef = new VarDefNode("__jthis", new Owner.Class(className, false), new ReturnType.JavaClass(className), false);
             localMap.put(thisDef, 0);

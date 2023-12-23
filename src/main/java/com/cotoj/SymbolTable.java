@@ -184,7 +184,8 @@ public class SymbolTable {
 
     public IdentEntry addFuncDef(FuncDef funcDef, Owner owner) {
         Ident ident = funcDef.getIdent();
-        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()), funcDef.isThread());
+        FuncDefNode funcDefNode = new FuncDefNode(ident.getName(), owner, ReturnType.fromFuncType(funcDef.getFuncType()),
+                                                 funcDef.isThread(), funcDef.isRoutine());
         FuncFParams funcFParams = funcDef.getFuncFParams();
         if (funcFParams != null) {
             for (FuncFParam funcFParam : funcFParams.getFuncFParams()) {
@@ -228,7 +229,7 @@ public class SymbolTable {
             throw new RuntimeException("No, this is not a function.");
         }
         FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
-        if (!funcDef.isThread()) {
+        if (!funcDef.isParallel()) {
             throw new RuntimeException("No, this is not a thread function.");
         }
         for (FuncParamNode param: funcDef.getParams()) {

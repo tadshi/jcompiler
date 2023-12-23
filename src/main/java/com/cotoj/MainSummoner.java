@@ -50,7 +50,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
     public MainSummoner(File logFile) throws FileNotFoundException {
         super(logFile);
         this.threads = new HashMap<>();
-        cv.visit(V17, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
+        cv.visit(V21, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
     }
 
     private void summonDictPut(VarDefNode varDef, Exp keyExp, Exp assignExp, MethodVisitor mv, MethodHelper helper, SymbolTable table) {
@@ -272,18 +272,27 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                             throw new CError(ErrorType.IDENT_NOT_EXISTS, "Cannot find parallel function named" + funcCall.getIdent().getName());
                         }
                         FuncDefNode funcDef = ((FuncDefNode)entry.getDef());
-                        if (!funcDef.isThread()) {
+                        if (!funcDef.isParallel()) {
                             throw new CError(ErrorType.NOT_A_THREAD, "This is not a thread function!");
                         }
-                        mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
-                        mv.visitInsn(DUP);
-                        helper.reportUseOpStack(2, null);
-                        ExpSummoner.summonThread(funcCall, mv, helper, table);
-                        mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)" + JavaType.THREAD.toDescriptor(), false);
-                        mv.visitInsn(DUP);
-                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
-                        mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "join", "()V", false);
-                        helper.reportPopOpStack(3);
+                        if (funcDef.isRoutine()) {
+                            mv.visitMethodInsn(INVOKESTATIC, JavaType.THREAD.toTypeString(), "ofVirtual", "()Ljava/lang/Thread$Builder$OfVirtual;", false);
+                            helper.reportUseOpStack(1, "java/lang/Thread$Builder$OfVirtual");
+                            ExpSummoner.summonThread(funcCall, mv, helper, table);
+                            mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Thread$Builder", "start", "(Ljava/lang/Runnable;)Ljava/lang/Thread;", true);
+                            mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "join", "()V", false);
+                            helper.reportPopOpStack(2);
+                        } else {
+                            mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
+                            mv.visitInsn(DUP);
+                            helper.reportUseOpStack(2, null);
+                            ExpSummoner.summonThread(funcCall, mv, helper, table);
+                            mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)" + JavaType.THREAD.toDescriptor(), false);
+                            mv.visitInsn(DUP);
+                            mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
+                            mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "join", "()V", false);
+                            helper.reportPopOpStack(3);
+                        }
                     }
                     default -> throw new RuntimeException("What's this awaitStmt?");
                 }
@@ -309,13 +318,23 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             }
             case CallThreadStmt runStmt -> {
                 FuncCall funcCall = runStmt.getFuncCall();
-                mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
-                mv.visitInsn(DUP);
-                helper.reportUseOpStack(2, null);
-                ExpSummoner.summonThread(funcCall, mv, helper, table);
-                mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)V", false);
-                mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
-                helper.reportPopOpStack(3);
+                FuncDefNode funcDef = ((FuncDefNode)table.getEntry(funcCall.getIdent().getName(), SymbolType.FUNCTION).getDef());
+                if (funcDef.isRoutine()) {
+                    mv.visitMethodInsn(INVOKESTATIC, JavaType.THREAD.toTypeString(), "ofVirtual", "()Ljava/lang/Thread$Builder$OfVirtual;", false);
+                    helper.reportUseOpStack(1, "java/lang/Thread$Builder$OfVirtual");
+                    ExpSummoner.summonThread(funcCall, mv, helper, table);
+                    mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Thread$Builder", "start", "(Ljava/lang/Runnable;)Ljava/lang/Thread;", true);
+                    mv.visitInsn(POP);
+                    helper.reportPopOpStack(2);
+                } else {
+                    mv.visitTypeInsn(NEW, JavaType.THREAD.toTypeString());
+                    mv.visitInsn(DUP);
+                    helper.reportUseOpStack(2, null);
+                    ExpSummoner.summonThread(funcCall, mv, helper, table);
+                    mv.visitMethodInsn(INVOKESPECIAL, JavaType.THREAD.toTypeString(), "<init>", "(Ljava/lang/Runnable;)V", false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.THREAD.toTypeString(), "start", "()V", false);
+                    helper.reportPopOpStack(3);
+                }
             }
             case PutItemStmt appendStmt -> {
                 Ident listIdent = appendStmt.getIdent();
