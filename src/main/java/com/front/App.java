@@ -15,8 +15,8 @@ public class App {
         if (args.length == 1 && ("-v".equals(args[0]) || "--version".equals(args[0]))) {
             System.out.println("Jcompiler ver 0.2 by yifeiHuang623 and tadshi");
             return;
-        } else if (args.length != 3) {
-            System.out.println("Usage: java -jar jcompiler.jar <soruce_file> <output_file> <log_path>");
+        } else if (args.length != 2) {
+            System.out.println("Usage: java -jar jcompiler.jar <soruce_file> <output_file>");
             return;
         }  else if (args[0].startsWith("--test=")) {
             String testFileName = "/test" + args[0].substring(7) + ".txt";
@@ -28,17 +28,18 @@ public class App {
             rfile = new RandomAccessFile(args[0], "r");
         }
         Path savePath = Path.of(args[1]);
-        Path logPath = Path.of(args[2]);
+        // Path logPath = Path.of(args[2]);
         // 词法分析
         LexicalParser lexical = new LexicalParser(rfile);
         Map<Integer, LexicalParser.Word> wordMap = lexical.lexicalAnalysis();
 
         GrammaticalParser grammer = new GrammaticalParser(wordMap);
         CompUnit root = grammer.GrammaticalAnalysis();
-        
-        JavaBytecodeSummoner summoner = new JavaBytecodeSummoner(logPath);
+
+        JavaBytecodeSummoner summoner = new JavaBytecodeSummoner();
+        // JavaBytecodeSummoner summoner = new JavaBytecodeSummoner(logPath);
         summoner.summon(root);
-        summoner.save(savePath);
-        // summoner.saveJar(savePath);
+        // summoner.save(savePath);
+        summoner.saveJar(savePath);
     }
 }

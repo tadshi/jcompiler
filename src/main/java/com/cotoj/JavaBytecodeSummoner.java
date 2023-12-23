@@ -20,6 +20,13 @@ public final class JavaBytecodeSummoner {
     private final StaticSummoner staticSummoner;
     private final MainSummoner mainSummoner;
     private boolean masterUp;
+
+    public JavaBytecodeSummoner() {
+        symbolTable = new SymbolTable();
+        staticSummoner = new StaticSummoner(symbolTable);
+        mainSummoner = new MainSummoner();
+        this.masterUp = false;
+    }
     
     public JavaBytecodeSummoner(Path logFolder) {
         symbolTable = new SymbolTable();

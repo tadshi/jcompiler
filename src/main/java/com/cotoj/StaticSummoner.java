@@ -31,15 +31,26 @@ import com.front.gunit.VarDef;
 public class StaticSummoner extends ClassMaker implements Opcodes {
     MethodVisitor initVisitor;
     MethodHelper initHelper;
+
+    public StaticSummoner(SymbolTable table) {
+        super();
+        cv.visit(V21, ACC_PUBLIC + ACC_FINAL, "com/oto/Static", null, "java/lang/Object", null);
+        initVisitor = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "<clinit>", "()V", null, null);
+        initVisitor.visitCode();
+        initHelper = new MethodHelper("com/oto/Static");
+        initStdOut(table);
+    }
+
     public StaticSummoner(File logFile, SymbolTable table) throws FileNotFoundException {
         super(logFile);
         cv.visit(V21, ACC_PUBLIC + ACC_FINAL, "com/oto/Static", null, "java/lang/Object", null);
         initVisitor = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "<clinit>", "()V", null, null);
         initVisitor.visitCode();
-        // initVisitor.visitVarInsn(ALOAD, 0);
-        // initVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
         initHelper = new MethodHelper("com/oto/Static");
+        initStdOut(table);
+    }
 
+    private void initStdOut(SymbolTable table) {
         cv.visitField(ACC_PUBLIC + ACC_STATIC, "__jScanner", "Ljava/util/Scanner;", null, null).visitEnd();
         initVisitor.visitTypeInsn(NEW, "java/util/Scanner");
         initVisitor.visitInsn(DUP);

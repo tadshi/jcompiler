@@ -5,3 +5,4 @@ target/
 src/main/java/com/cotoj/Main.java
 test/
 .vscode/
+demo/

@@ -47,6 +47,12 @@ public class MainSummoner extends ClassMaker implements Opcodes {
     private FuncDefNode currentFunc = null;
     private Map<String, ClassWriter> threads;
     
+    public MainSummoner() {
+        super();
+        this.threads = new HashMap<>();
+        cv.visit(V21, ACC_PUBLIC + ACC_ABSTRACT, "com/oto/Main", null, "java/lang/Object", null);
+    }
+    
     public MainSummoner(File logFile) throws FileNotFoundException {
         super(logFile);
         this.threads = new HashMap<>();

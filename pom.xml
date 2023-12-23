@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oto.cotoj</groupId>
   <artifactId>cotoj</artifactId>
-  <version>1</version>
+  <version>1.1</version>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>

@@ -14,8 +14,13 @@ import org.objectweb.asm.util.TraceClassVisitor;
 
 public abstract class ClassMaker {
     protected ClassWriter classWriter;
-    protected TraceClassVisitor tcv;
+    private TraceClassVisitor tcv;
     protected CheckClassAdapter cv;
+    
+    public ClassMaker() {
+        classWriter = new ClassWriter(0);
+        cv = new CheckClassAdapter(classWriter);
+    }
     
     public ClassMaker(File logFile) throws FileNotFoundException {
         PrintWriter logWriter = new PrintWriter(logFile);
