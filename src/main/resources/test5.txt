@@ -1,4 +1,6 @@
 def main() {
+    float f = 5 / 2.0; // 2.5
+    int i = 2 * f; // 5
     if (!"") {
         printf("Zero-length string is false;\n");
     }
@@ -9,5 +11,8 @@ def main() {
     dict<int, string> isd = {};
     if (!isd) {
         printf("And zero-length dict is also false.\n");
+    }
+    if ("abc" < "de" && "ef" == "ef") {
+        printf("Strings are compared lexicographically.");
     }
 }

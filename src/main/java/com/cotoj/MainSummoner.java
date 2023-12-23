@@ -400,7 +400,7 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                     switch (entry.getDef()) {
                         case VarDefNode simpleDef -> {
                             if (varDef.getInitVal() == null) break;
-                            ExpTypeHelper.checkMatch(simpleDef.getType(), ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table));
+                            ExpTypeHelper.implicitCast(simpleDef.getType(), ExpSummoner.summonExp(((Exp)varDef.getInitVal().getInitForm()), mv, helper, table), mv, helper);
                             mv.visitVarInsn(OpcodeHelper.toStore(simpleDef.getType()), helper.getVarIndex(simpleDef));
                             helper.reportPopOpStack(1);
                         }

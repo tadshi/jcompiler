@@ -384,7 +384,7 @@ public interface ExpSummoner extends Opcodes {
                     default -> throw new RuntimeException("Not sure what is " + relExp.getCh());
                 }
             } else if (JavaType.STRING.equals(finalType)) {
-                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Comparable", "compareTo", "(Ljava/lang/Object;)I", true);
+                mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Comparable", "compareTo", "(Ljava/lang/Object;)I", true);
                 switch(relExp.getCh()) {
                     case ">=" -> mv.visitJumpInsn(IFGE, endLabel);
                     case "<=" -> mv.visitJumpInsn(IFLE, endLabel);
@@ -429,7 +429,7 @@ public interface ExpSummoner extends Opcodes {
                     default -> throw new RuntimeException("Not sure what is " + eqExp.getCh());
                 }
             } else {
-                mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.OBJECT.toTypeString(), "equals", "(Ljava/lang/Object)Z", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, JavaType.OBJECT.toTypeString(), "equals", "(Ljava/lang/Object;)Z", false);
                 switch(eqExp.getCh()) {
                     case "==" -> mv.visitJumpInsn(IFNE, label);
                     case "!=" -> mv.visitJumpInsn(IFEQ, label);
@@ -457,7 +457,7 @@ public interface ExpSummoner extends Opcodes {
             }
             ExpTypeHelper.anyToBool(pair.type(), mv, helper);
             helper.dup(mv);
-            mv.visitJumpInsn(IFEQ, midPoint);
+            mv.visitJumpInsn(IFEQ, skipPoint);
             helper.reportPopOpStack(1);
             ExpTypeHelper.anyToBool(summonEqxp(lAndExp.getEqExp(), mv, helper, table), mv, helper);
             return TypePair.Yup(new ReturnType.Boolean());
