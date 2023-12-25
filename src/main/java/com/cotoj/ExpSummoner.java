@@ -140,6 +140,7 @@ public interface ExpSummoner extends Opcodes {
                     case ReturnType.List(ReturnType cType) -> {
                         ExpTypeHelper.checkInt(summonExp(lVal.getExps().getFirst(), mv, helper, table));
                         mv.visitMethodInsn(INVOKEINTERFACE, JavaType.LIST_INT.toTypeString(), "get", "(I)Ljava/lang/Object;", true);
+                        ExpTypeHelper.objectCast(cType, mv, helper);
                         AutoPacker.summonInlineUnpack(cType, mv);
                         helper.reportPopOpStack(2);
                         helper.reportUseOpStack(1, cType.toTypeString());
@@ -149,6 +150,7 @@ public interface ExpSummoner extends Opcodes {
                         ExpTypeHelper.checkMatch(keyType, summonExp(lVal.getExps().getFirst(), mv, helper, table));
                         AutoPacker.summonPack(keyType, mv, helper);
                         mv.visitMethodInsn(INVOKEINTERFACE, JavaType.DICT_INT.toTypeString(), "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+                        ExpTypeHelper.objectCast(valType, mv, helper);
                         AutoPacker.summonInlineUnpack(valType, mv);
                         helper.reportPopOpStack(2);
                         helper.reportUseOpStack(1, valType.toTypeString());
@@ -198,7 +200,7 @@ public interface ExpSummoner extends Opcodes {
                 yield new ReturnType.Integer();
             }
             case GBool gb -> {
-                mv.visitLdcInsn(gb.getBool().booleanValue());
+                mv.visitLdcInsn(gb.getBool() ? 1 : 0);
                 helper.reportUseOpStack(1, "Z");
                 yield new ReturnType.Boolean();
             }
@@ -458,7 +460,8 @@ public interface ExpSummoner extends Opcodes {
             ExpTypeHelper.anyToBool(pair.type(), mv, helper);
             helper.dup(mv);
             mv.visitJumpInsn(IFEQ, skipPoint);
-            helper.reportPopOpStack(1);
+            mv.visitInsn(POP);
+            helper.reportPopOpStack(2);
             ExpTypeHelper.anyToBool(summonEqxp(lAndExp.getEqExp(), mv, helper, table), mv, helper);
             return TypePair.Yup(new ReturnType.Boolean());
         }
@@ -477,7 +480,8 @@ public interface ExpSummoner extends Opcodes {
             ExpTypeHelper.anyToBool(pair.type(), mv, helper);
             helper.dup(mv);
             mv.visitJumpInsn(IFNE, skipPoint);
-            helper.reportPopOpStack(1);
+            mv.visitInsn(POP);
+            helper.reportPopOpStack(2);
             ExpTypeHelper.anyToBool(summonLAndExp(lOrExp.getlAndExp(), mv, helper, table, skipPoint).type, mv, helper);
             return TypePair.Yup(new ReturnType.Boolean());
         }

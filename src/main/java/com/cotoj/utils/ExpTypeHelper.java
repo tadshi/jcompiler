@@ -132,4 +132,16 @@ public interface ExpTypeHelper {
         }
         throw new CError(ErrorType.TYPE_MISMATCH, "Cannot cast from " + right + " to " + left + ".");
     }
+
+    public static void objectCast(ReturnType target, MethodVisitor mv, MethodHelper helper) {
+        if (target.isPrimitive()) {
+            ReturnType packedType = AutoPacker.getPackedTypeWithCheck(target);
+            mv.visitTypeInsn(Opcodes.CHECKCAST, packedType.toTypeString());
+            AutoPacker.summonInlineUnpack(packedType, mv);
+        } else {
+            mv.visitTypeInsn(Opcodes.CHECKCAST, target.toTypeString());
+        }
+        helper.reportPopOpStack(1);
+        helper.reportUseOpStack(1, target.toTypeString());
+    }
 }

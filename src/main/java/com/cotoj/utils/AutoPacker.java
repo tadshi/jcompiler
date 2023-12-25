@@ -33,6 +33,14 @@ public interface AutoPacker {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, packedType.toTypeString(), methodName, "()" + unpackedType.toDescriptor(), false);
     }
 
+    public static ReturnType getPackedTypeWithCheck(ReturnType unpackedType) {
+        ReturnType packedType = getPackedType(unpackedType);
+        if (packedType == null) {
+            throw new RuntimeException(unpackedType + " is not a premitive type.");
+        }
+        return packedType;
+    }
+
     private static ReturnType getPackedType(ReturnType unpackedType) {
         return switch (unpackedType) {
             case ReturnType.Integer() -> JavaType.INTEGER;

@@ -1,0 +1,69 @@
+semaphore wg = -2;
+shared list<int> odd_list, even_list;
+semaphore even_sem = 0, odd_sem = 0;
+semaphore even_sync = 0, odd_sync = 0;
+routine def producer() {
+    int i = 0;
+    while(i < 10){
+        if (i % 2 == 0) {
+            even_list.add(i);
+            signal even_sem;
+        } else {
+            odd_list.add(i);
+            signal odd_sem;
+        }
+        i = i + 1;
+    }
+    signal wg;
+    even_list.add(-1);
+    signal even_sem;
+    odd_list.add(-1);
+    signal odd_sem;
+}
+
+
+routine def oddConsumer() {
+    int index = 0;
+    while(true) {
+        await odd_sync;
+        await odd_sem;
+        int value = odd_list[index];
+        index = index + 1;
+        if (value < 0) {
+            printf("Consumer odd, work done\n");
+            signal even_sync;
+            signal wg;
+            return;
+        }
+        printf("Consumer odd, get value %d\n", value);
+        signal even_sync;
+    }
+}
+
+
+routine def evenConsumer() {
+    int index = 0;
+    while(true) {
+        await even_sync;
+        await even_sem;
+        int value = even_list[index];
+        index = index + 1;
+        if (value < 0) {
+            printf("Consumer even, work done\n");
+            signal odd_sync;
+            signal wg;
+            return;
+        }
+        printf("Consumer even, get value %d\n", value);
+        signal odd_sync;
+    }
+}
+
+
+def main() {
+    signal even_sync;
+    run producer();
+    run oddConsumer();
+    run evenConsumer();
+    await wg;
+}

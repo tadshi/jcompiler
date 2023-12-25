@@ -150,12 +150,13 @@ public class MainSummoner extends ClassMaker implements Opcodes {
                 Label start = new Label();
                 Label else_stmt = new Label();
                 TypePair pair = ExpSummoner.summonLOrExp(ifStmt.getCond().getlOrExp(), mv, helper, table, start);
-                mv.visitJumpInsn(IFEQ, else_stmt);
-                helper.reportPopOpStack(1);
+                mv.visitInsn(NOP);
                 if (pair.used()) {
                     mv.visitLabel(start);
                     helper.visitFrame(mv);
                 }
+                mv.visitJumpInsn(IFEQ, else_stmt);
+                helper.reportPopOpStack(1);
                 summonStmt(ifStmt.getStmt().getWrappedStmt(), mv, table, helper);
                 mv.visitInsn(NOP);
                 if (ifStmt.getElseStmt() == null) {
@@ -174,12 +175,15 @@ public class MainSummoner extends ClassMaker implements Opcodes {
             }
             case WhileStmt whileStmt -> {
                 Label start = new Label();
+                Label judge = new Label();
                 Label end = new Label();
 
                 mv.visitInsn(NOP);
                 mv.visitLabel(start);
                 helper.visitFrame(mv);
-                ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, end);
+                ExpSummoner.summonLOrExp(whileStmt.getCond().getlOrExp(), mv, helper, table, judge);
+                mv.visitLabel(judge);
+                helper.visitFrame(mv);
                 mv.visitJumpInsn(IFEQ, end);
                 helper.reportPopOpStack(1);
                 //Summon loop
